@@ -41,3 +41,18 @@ def test_gerar_email_e_simulador():
     encerrar.click().run()
     assert not at.exception
     assert any("Relatório" in m.value for m in at.markdown)
+
+
+def test_rascunho_sobrevive_a_navegacao():
+    at = AppTest.from_file(str(APP), default_timeout=60).run()
+    at.button(key="abrir_crm").click().run()
+    next(b for b in at.button if "Gerar E-mail" in b.label).click().run()
+    corpo = next(t for t in at.text_area if "Corpo" in t.label)
+    chave = corpo.key
+    corpo.set_value("Texto editado pelo vendedor").run()
+    at.button(key="voltar_crm").click().run()
+    at.button(key="abrir_simulador").click().run()
+    at.button(key="voltar_simulador").click().run()
+    at.button(key="abrir_crm").click().run()
+    assert not at.exception
+    assert at.text_area(key=chave).value == "Texto editado pelo vendedor"

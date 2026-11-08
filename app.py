@@ -494,8 +494,19 @@ def rolar_para_topo(secao: str) -> None:
     )
 
 
+CHAVES_PERSISTENTES = ("tipo_", "assunto_", "corpo_", "aprovado_")
+
+
+def preservar_rascunhos() -> None:
+    """Mantém o rascunho do e-mail quando a seção CRM não é renderizada (Streamlit limpa widgets ocultos)."""
+    for chave in list(st.session_state):
+        if isinstance(chave, str) and chave.startswith(CHAVES_PERSISTENTES):
+            st.session_state[chave] = st.session_state[chave]
+
+
 def main() -> None:
     st.session_state.setdefault("secao", "capa")
+    preservar_rascunhos()
     cliente = barra_lateral(obter_cliente_llm())
     st.markdown(ui.cabecalho_html(), unsafe_allow_html=True)
     secao = st.session_state.secao
