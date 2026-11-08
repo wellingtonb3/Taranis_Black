@@ -23,6 +23,7 @@ PROVEDORES = {
     },
 }
 MODELO_PADRAO = PROVEDORES["openai"]["modelo"]
+CHAVES_EXEMPLO = {"sk-...", "COLE_SUA_CHAVE_AQUI"}
 
 
 def _ler_segredo(nome: str) -> str | None:
@@ -42,7 +43,7 @@ def _detectar_provedor() -> tuple[str, str | None]:
     """Retorna o primeiro provedor com chave configurada (DeepSeek tem prioridade)."""
     for codigo, cfg in PROVEDORES.items():
         chave = _ler_segredo(cfg["chave"])
-        if chave:
+        if chave and chave.strip() not in CHAVES_EXEMPLO:
             return codigo, chave
     return "openai", None
 

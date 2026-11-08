@@ -160,3 +160,10 @@ def test_llm_sem_chave_fica_offline(monkeypatch):
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
     assert not LLMClient().configurado
+
+
+def test_llm_ignora_chave_de_exemplo(monkeypatch):
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-...")
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-real")
+    cliente = LLMClient()
+    assert cliente.provedor == "OpenAI" and cliente.configurado
