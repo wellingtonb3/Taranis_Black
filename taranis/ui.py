@@ -115,6 +115,85 @@ SVG_CABINE = (
 ILUSTRACOES = {"ErgoPro": SVG_CADEIRA, "SmartDesk": SVG_MESA, "Silence": SVG_CABINE}
 
 
+CSS_CAPA = f"""
+<style>
+.tb-hero {{border:1px solid #2A2D33; border-radius:18px; padding:2.2rem 2.4rem 1.8rem;
+  background:radial-gradient(circle at 85% 20%,rgba(201,162,39,.16) 0%,rgba(0,0,0,0) 45%),
+  linear-gradient(135deg,#15171A 0%,#1E2125 100%); margin-bottom:1.2rem;}}
+.tb-hero .tb-kicker {{color:{DOURADO}; letter-spacing:.22em; font-size:.78rem; font-weight:700;}}
+.tb-hero .tb-titulo {{color:#F5F5F5; font-size:2.3rem; font-weight:800; line-height:1.15; margin:.5rem 0 .8rem;}}
+.tb-hero .tb-titulo span {{color:{DOURADO};}}
+.tb-hero p {{color:#C9CCD1; font-size:1.02rem; max-width:900px; margin:0;}}
+.tb-kpis {{display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:.8rem; margin-top:1.4rem;}}
+.tb-kpi {{border:1px solid #2F3238; border-radius:12px; padding:.8rem 1rem; background:rgba(28,30,34,.85);}}
+.tb-kpi b {{display:block; color:#F5F5F5; font-size:1.55rem; font-weight:800;}}
+.tb-kpi.dor b {{color:#E57373;}}
+.tb-kpi.meta b {{color:{VERDE};}}
+.tb-kpi span {{color:{CINZA}; font-size:.8rem;}}
+.tb-secao {{color:#F5F5F5; font-size:1.35rem; font-weight:700; margin:1.4rem 0 .2rem;}}
+.tb-secao-sub {{color:{CINZA}; font-size:.92rem; margin-bottom:.9rem;}}
+.tb-dor {{border:1px solid #2A2D33; border-radius:16px; background:{CHUMBO}; padding:1.3rem 1.4rem 1rem;
+  margin-bottom:.6rem; min-height:300px; position:relative; transition:border-color .2s, transform .2s;}}
+.tb-dor:hover {{border-color:{DOURADO}; transform:translateY(-2px);}}
+.tb-dor .tb-num {{position:absolute; top:1rem; right:1.2rem; font-size:2.6rem; font-weight:800;
+  color:rgba(201,162,39,.18);}}
+.tb-dor .tb-rot {{font-size:.72rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase;}}
+.tb-dor .tb-rot.dor {{color:#E57373;}}
+.tb-dor .tb-rot.sol {{color:{VERDE}; margin-top:1rem;}}
+.tb-dor h3 {{color:#F5F5F5; font-size:1.25rem; margin:.25rem 0 .35rem; padding:0 3.6rem 0 0;}}
+.tb-dor p {{color:{CINZA}; font-size:.9rem; margin:0;}}
+.tb-dor .tb-sol {{color:#F5F5F5; font-size:1.08rem; font-weight:700; margin:.2rem 0 .2rem;}}
+.tb-relatorio {{border:1px solid #2A2D33; border-radius:12px; background:{CHUMBO}; padding:1.2rem 1.4rem;
+  max-height:560px; overflow-y:auto; color:#D8D8D8; font-size:.9rem;}}
+.tb-relatorio h4 {{color:{DOURADO}; margin:1rem 0 .3rem; font-size:1rem;}}
+.tb-relatorio p {{margin:.25rem 0;}}
+.tb-relatorio .tb-dica {{color:{CINZA}; font-style:italic;}}
+.tb-email {{border:1px solid #2A2D33; border-left:3px solid {DOURADO}; border-radius:12px;
+  background:{CHUMBO}; padding:1.1rem 1.3rem; color:#DADADA; font-size:.93rem;}}
+.tb-email p {{margin:.35rem 0;}}
+div[data-testid="stButton"] button[kind="primary"] {{font-weight:700; letter-spacing:.03em;}}
+</style>
+"""
+
+
+def hero_html(kpis_dor: list[tuple[str, str]], kpis_meta: tuple[tuple[str, str], ...]) -> str:
+    dores = "".join(f'<div class="tb-kpi dor"><b>{escape(v)}</b><span>{escape(t)}</span></div>' for v, t in kpis_dor)
+    metas = "".join(f'<div class="tb-kpi meta"><b>{escape(v)}</b><span>{escape(t)}</span></div>' for v, t in kpis_meta)
+    return (
+        '<div class="tb-hero"><div class="tb-kicker">TARANIS BLACK · AI SALES COCKPIT · ROTA 1 B2B</div>'
+        '<div class="tb-titulo">A força de vendas perde <span>40% do tempo</span> com tarefas manuais.<br>'
+        "A IA devolve esse tempo para vender.</div>"
+        "<p>Quatro dores travam o comercial B2B da Taranis Black. Cada uma tem uma solução neste cockpit: "
+        "clique em <b>Abrir solução</b> para ver como ela funciona.</p>"
+        f'<div class="tb-kpis">{dores}{metas}</div></div>'
+    )
+
+
+def dor_card_html(numero: int, dor: str, evidencia: str, solucao: str, como: str) -> str:
+    return (
+        f'<div class="tb-dor"><div class="tb-num">0{numero}</div>'
+        f'<div class="tb-rot dor">Dor {numero}</div><h3>{escape(dor)}</h3><p>{escape(evidencia)}</p>'
+        f'<div class="tb-rot sol">Solução</div><div class="tb-sol">{escape(solucao)}</div>'
+        f"<p>{escape(como)}</p></div>"
+    )
+
+
+def email_ceo_html(paragrafos: list[str]) -> str:
+    return '<div class="tb-email">' + "".join(f"<p>{escape(p)}</p>" for p in paragrafos) + "</div>"
+
+
+def relatorio_html(paragrafos: list[str], eh_titulo) -> str:
+    partes = []
+    for p in paragrafos:
+        if p.startswith("💡"):
+            partes.append(f'<p class="tb-dica">{escape(p)}</p>')
+        elif eh_titulo(p):
+            partes.append(f"<h4>{escape(p)}</h4>")
+        else:
+            partes.append(f"<p>{escape(p)}</p>")
+    return '<div class="tb-relatorio">' + "".join(partes) + "</div>"
+
+
 def cabecalho_html() -> str:
     return (
         '<div class="tb-header"><div><div class="tb-logo">TARANIS BLACK <span>| AI Sales Cockpit</span></div>'

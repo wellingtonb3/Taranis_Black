@@ -167,3 +167,14 @@ def test_llm_ignora_chave_de_exemplo(monkeypatch):
     monkeypatch.setenv("OPENAI_API_KEY", "sk-real")
     cliente = LLMClient()
     assert cliente.provedor == "OpenAI" and cliente.configurado
+
+
+def test_relatorio_executivo():
+    from taranis import relatorio
+
+    paragrafos = relatorio.carregar_paragrafos()
+    resumo = relatorio.resumo_executivo(paragrafos)
+    assert resumo[0].startswith("Prezada CEO")
+    assert resumo[-1].startswith("Impacto Projetado")
+    assert relatorio.eh_titulo("Etapa 1 — AI Canvas & Mapeamento de Oportunidades")
+    assert not relatorio.eh_titulo("💡  Escreva este resumo")

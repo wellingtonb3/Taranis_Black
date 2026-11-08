@@ -21,6 +21,11 @@ traduzir ergonomia em retorno financeiro ao vivo com o cliente.
 
 ## Módulos
 
+### 🏠 Capa – Dores & Soluções
+- Página inicial com o problema em números (40% do tempo perdido, pipeline travado) e as metas do Relatório Executivo.
+- 4 cards **Dor → Solução** com botão **Abrir solução**, que levam a cada módulo; menu lateral e botão **← Voltar à capa**.
+- Resumo executivo para a CEO, leitura do relatório completo e download do `.docx` (`docs/relatorio_executivo_taranis_black_rota1.docx`).
+
 ### 🏢 Aba 1 – Visão Geral & Catálogo Interativo
 - Cabeçalho executivo, propósito da empresa, laudo NR-17 e garantia Taranis de 5 anos.
 - Cards com ilustração, especificações técnicas, público indicado, preço e badge de garantia.
@@ -108,13 +113,14 @@ python -m pytest -q
 
 ## Estrutura do projeto
 ```
-app.py                     # Interface Streamlit (4 abas + barra lateral LGPD)
+app.py                     # Interface Streamlit (capa + 4 módulos + barra lateral LGPD)
 taranis/
   catalog.py               # Catálogo oficial, políticas comerciais e utilitários
   leads.py                 # Leitura da planilha, classificação das objeções e máscara LGPD
   email_engine.py          # Regras IF/ELSE e geração de e-mails (offline e LLM)
   simulator.py             # Persona Dr. Roberto Mendes, respostas e avaliação
   roi.py                   # Cálculo de ROI, payback e TCO
+  relatorio.py             # Leitura do Relatório Executivo (.docx) exibido na capa
   llm.py                   # Cliente DeepSeek/OpenAI com fallback offline
   ui.py                    # CSS, ilustrações SVG e cards
 data/02_Leads_B2B_Comercial.xlsx
