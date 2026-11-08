@@ -5,14 +5,24 @@ from __future__ import annotations
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+import streamlit.components.v1 as components
 
-from taranis import catalog, email_engine, simulator, ui
+from taranis import catalog, email_engine, relatorio, simulator, ui
 from taranis.leads import carregar_leads, carregar_matriz, mascarar_email, matriz_por_categoria
 from taranis.llm import LLMClient
 from taranis.roi import ParametrosROI, calcular_roi
 
 st.set_page_config(page_title="Taranis Black | AI Sales Cockpit", page_icon="🖤", layout="wide")
 st.markdown(ui.CSS, unsafe_allow_html=True)
+st.markdown(ui.CSS_CAPA, unsafe_allow_html=True)
+
+SECOES = {
+    "capa": "🏠 Capa · Dores & Soluções",
+    "crm": "🎯 CRM B2B & E-mails",
+    "simulador": "🥊 Simulador de Objeções",
+    "roi": "📊 Calculadora ROI & TCO",
+    "catalogo": "🏢 Catálogo & Políticas",
+}
 
 
 @st.cache_resource
@@ -36,18 +46,21 @@ def barra_lateral(cliente: LLMClient) -> LLMClient | None:
         st.markdown("### 🖤 TARANIS BLACK")
         st.caption("AI Sales Cockpit · Rota 1 B2B · Challenge ONE G11")
         st.divider()
+        st.radio("**Navegação**", list(SECOES), format_func=SECOES.get, key="secao")
+        st.divider()
         st.markdown("**Motor de IA**")
         ativo = None
         if cliente.configurado:
-            usar = st.toggle(f"Usar OpenAI ({cliente.modelo})", value=True)
+            usar = st.toggle(f"Usar {cliente.provedor} ({cliente.modelo})", value=True)
             ativo = cliente if usar else None
         else:
             st.info(
-                "Modo **offline** (determinístico) ativo. Para ativar a OpenAI, defina "
-                "`OPENAI_API_KEY` em `.streamlit/secrets.toml` ou como variável de ambiente.",
+                "Modo **offline** (determinístico) ativo. Para ativar a IA, defina "
+                "`DEEPSEEK_API_KEY` ou `OPENAI_API_KEY` em `.streamlit/secrets.toml` "
+                "ou como variável de ambiente.",
                 icon="🧠",
             )
-        st.caption("Status: " + ("🟢 OpenAI" if ativo else "⚪ Offline"))
+        st.caption("Status: " + (f"🟢 {ativo.provedor}" if ativo else "⚪ Offline"))
         st.divider()
         st.markdown(ui.LGPD_HTML, unsafe_allow_html=True)
     return ativo
@@ -199,7 +212,7 @@ def aba_crm(cliente: LLMClient | None) -> None:
         return
     if meta.get("aviso"):
         st.warning(meta["aviso"])
-    fonte = "OpenAI" if meta["fonte"] == "openai" else "motor offline"
+    fonte = "motor offline" if meta["fonte"] == "offline" else meta["fonte"]
     st.caption(f"Regra aplicada: **{meta['regra']}** · Gerado por {fonte} · Rascunho editável")
 
     assunto = st.text_input("Assunto (máx. 6 palavras)", key=f"assunto_{lead['id']}")
@@ -272,7 +285,7 @@ def aba_simulador(cliente: LLMClient | None) -> None:
         with nota_col:
             st.markdown(f'<div class="tb-score">{avaliacao["nota"]}/10</div>', unsafe_allow_html=True)
             st.progress(avaliacao["nota"] / 10)
-            st.caption("Avaliado por " + ("OpenAI" if avaliacao["fonte"] == "openai" else "motor offline"))
+            st.caption("Avaliado por " + ("motor offline" if avaliacao["fonte"] == "offline" else avaliacao["fonte"]))
         with fortes_col:
             st.markdown("**✅ Pontos fortes**")
             st.markdown("\n".join(f"- {p}" for p in avaliacao["pontos_fortes"]))
@@ -374,25 +387,144 @@ def aba_roi() -> None:
         )
 
 
+def ir_para(secao: str) -> None:
+    st.session_state.secao = secao
+
+
+@st.cache_data
+def obter_relatorio() -> list[str]:
+    return relatorio.carregar_paragrafos()
+
+
+DORES = (
+    (
+        "crm",
+        "Objeções travando o pipeline",
+        "{n} leads parados em 5 objeções (orçamento, preço, fornecedor, prazo e customização), "
+        "somando {valor}. E-mails genéricos e CRM manual consomem 40% da semana do vendedor.",
+        "CRM B2B & Gerador de E-mails com IA",
+        "Seleciona o lead, identifica a objeção e gera o e-mail consultivo certo, com revisão humana.",
+    ),
+    (
+        "simulador",
+        "Vendedor despreparado para o comprador cético",
+        "Respostas fracas como “nossa qualidade é melhor” ou “me ligue ano que vem” perdem o timing "
+        "diante de um concorrente 35% mais barato.",
+        "Simulador de Objeções (Role-Play)",
+        "Treino com o Dr. Roberto Mendes, diretor cético, e avaliação de 1 a 10 com pontos de melhoria.",
+    ),
+    (
+        "roi",
+        "Venda pelo preço, não pelo valor",
+        "Sem números de absenteísmo, TCO e payback, a conversa vira desconto e a margem desaparece.",
+        "Calculadora ROI & TCO Ergonômico",
+        "Calcula ao vivo, na reunião, economia anual, payback e ROI de 5 anos frente à cadeira comum.",
+    ),
+    (
+        "catalogo",
+        "Falta de prova técnica na mão do vendedor",
+        "NR-17, garantia de 5 anos, certificações e políticas comerciais ficam espalhadas em PDFs.",
+        "Catálogo Interativo & Políticas B2B",
+        "9 produtos com especificações, preços, garantia, certificações e condições comerciais.",
+    ),
+)
+
+
+def pagina_capa() -> None:
+    leads = obter_leads()
+    valor = catalog.formatar_brl_compacto(leads["valor"].sum())
+    kpis_dor = [("40%", "do tempo do vendedor em tarefas manuais"), (valor, f"travados em {len(leads)} leads")]
+    st.markdown(ui.hero_html(kpis_dor, relatorio.KPIS_RELATORIO), unsafe_allow_html=True)
+
+    st.markdown('<div class="tb-secao">As 4 dores e as soluções</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="tb-secao-sub">Vermelho: o problema · Verde: a solução no cockpit</div>',
+        unsafe_allow_html=True,
+    )
+    for linha in (DORES[:2], DORES[2:]):
+        colunas = st.columns(2, gap="large")
+        for coluna, (secao, dor, evidencia, solucao, como) in zip(colunas, linha, strict=True):
+            numero = list(SECOES).index(secao)
+            with coluna:
+                texto = evidencia.format(n=len(leads), valor=valor)
+                st.markdown(ui.dor_card_html(numero, dor, texto, solucao, como), unsafe_allow_html=True)
+                st.button(
+                    f"Abrir solução {numero} →",
+                    key=f"abrir_{secao}",
+                    type="primary",
+                    use_container_width=True,
+                    on_click=ir_para,
+                    args=(secao,),
+                )
+
+    st.markdown('<div class="tb-secao">📄 Relatório Executivo</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="tb-secao-sub">Diagnóstico e plano de IA apresentado à CEO da Taranis Black</div>',
+        unsafe_allow_html=True,
+    )
+    if not relatorio.RELATORIO_PATH.exists():
+        st.info("Relatório executivo não encontrado em `docs/`.")
+        return
+    paragrafos = obter_relatorio()
+    st.markdown(ui.email_ceo_html(relatorio.resumo_executivo(paragrafos)), unsafe_allow_html=True)
+    ler, baixar = st.columns([3, 1])
+    with ler, st.expander("Ler relatório completo"):
+        st.markdown(ui.relatorio_html(paragrafos, relatorio.eh_titulo), unsafe_allow_html=True)
+    with baixar:
+        st.download_button(
+            "⬇️ Baixar relatório (.docx)",
+            data=relatorio.RELATORIO_PATH.read_bytes(),
+            file_name=relatorio.RELATORIO_PATH.name,
+            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            use_container_width=True,
+        )
+
+
+def topo_secao(secao: str) -> None:
+    titulo, voltar = st.columns([5, 1])
+    titulo.markdown(f"### {SECOES[secao]}")
+    voltar.button("← Voltar à capa", key=f"voltar_{secao}", on_click=ir_para, args=("capa",), use_container_width=True)
+
+
+def rolar_para_topo(secao: str) -> None:
+    components.html(
+        f"<script>/* {secao} */ const d = window.parent.document;"
+        "(d.querySelector('[data-testid=\"stMain\"]') || d.documentElement).scrollTo(0, 0);</script>",
+        height=0,
+    )
+
+
+CHAVES_PERSISTENTES = ("tipo_", "assunto_", "corpo_", "aprovado_")
+
+
+def preservar_rascunhos() -> None:
+    """Mantém o rascunho do e-mail quando a seção CRM não é renderizada (Streamlit limpa widgets ocultos)."""
+    for chave in list(st.session_state):
+        if isinstance(chave, str) and chave.startswith(CHAVES_PERSISTENTES):
+            st.session_state[chave] = st.session_state[chave]
+
+
 def main() -> None:
+    st.session_state.setdefault("secao", "capa")
+    preservar_rascunhos()
     cliente = barra_lateral(obter_cliente_llm())
     st.markdown(ui.cabecalho_html(), unsafe_allow_html=True)
-    abas = st.tabs(
-        [
-            "🏢 Visão Geral & Catálogo",
-            "🎯 CRM B2B & E-mails",
-            "🥊 Simulador de Objeções",
-            "📊 Calculadora ROI & TCO",
-        ]
-    )
-    with abas[0]:
-        aba_catalogo()
-    with abas[1]:
+    secao = st.session_state.secao
+    if st.session_state.get("_secao_anterior") != secao:
+        st.session_state._secao_anterior = secao
+        rolar_para_topo(secao)
+    if secao == "capa":
+        pagina_capa()
+        return
+    topo_secao(secao)
+    if secao == "crm":
         aba_crm(cliente)
-    with abas[2]:
+    elif secao == "simulador":
         aba_simulador(cliente)
-    with abas[3]:
+    elif secao == "roi":
         aba_roi()
+    else:
+        aba_catalogo()
 
 
 main()

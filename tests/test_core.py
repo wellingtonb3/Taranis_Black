@@ -145,3 +145,36 @@ def test_detectar_topicos_nao_confunde_fornecedor_com_dor():
 def test_formatar_brl_compacto():
     assert catalog.formatar_brl_compacto(4693630) == "R$ 4,69 mi"
     assert catalog.formatar_brl_compacto(234681.5) == "R$ 234,7 mil"
+
+
+def test_llm_deepseek_configura_base_url(monkeypatch):
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-teste")
+    cliente = LLMClient()
+    assert cliente.configurado
+    assert cliente.provedor == "DeepSeek" and cliente.modelo == "deepseek-chat"
+    assert str(cliente._cliente.base_url).startswith("https://api.deepseek.com")
+
+
+def test_llm_sem_chave_fica_offline(monkeypatch):
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+    assert not LLMClient().configurado
+
+
+def test_llm_ignora_chave_de_exemplo(monkeypatch):
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-...")
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-real")
+    cliente = LLMClient()
+    assert cliente.provedor == "OpenAI" and cliente.configurado
+
+
+def test_relatorio_executivo():
+    from taranis import relatorio
+
+    paragrafos = relatorio.carregar_paragrafos()
+    resumo = relatorio.resumo_executivo(paragrafos)
+    assert resumo[0].startswith("Prezada CEO")
+    assert resumo[-1].startswith("Impacto Projetado")
+    assert relatorio.eh_titulo("Etapa 1 — AI Canvas & Mapeamento de Oportunidades")
+    assert not relatorio.eh_titulo("💡  Escreva este resumo")

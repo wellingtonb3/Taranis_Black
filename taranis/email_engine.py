@@ -241,7 +241,7 @@ def gerar_email_offline(lead: dict, tipo: str = "Follow-up") -> dict:
 
 
 def gerar_email_llm(cliente: LLMClient, lead: dict, tipo: str = "Follow-up") -> dict:
-    """Gera o e-mail com a OpenAI usando a regra da objeção; cai no offline em caso de erro."""
+    """Gera o e-mail com o LLM usando a regra da objeção; cai no offline em caso de erro."""
     base = gerar_email_offline(lead, tipo)
     if not cliente.configurado:
         return base
@@ -269,7 +269,7 @@ def gerar_email_llm(cliente: LLMClient, lead: dict, tipo: str = "Follow-up") -> 
             **base,
             "assunto": limitar_assunto(str(dados["assunto"]).strip()),
             "corpo": str(dados["corpo"]).strip(),
-            "fonte": "openai",
+            "fonte": cliente.provedor,
         }
     except Exception as exc:  # noqa: BLE001 - qualquer falha volta ao modo offline
-        return {**base, "fonte": "offline", "aviso": f"Falha na OpenAI, usado modo offline: {exc}"}
+        return {**base, "fonte": "offline", "aviso": f"Falha na {cliente.provedor}, usado modo offline: {exc}"}
