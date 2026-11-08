@@ -217,11 +217,11 @@ def _sistema_persona() -> str:
 
 
 def responder(cliente: LLMClient | None, historico: list[dict]) -> tuple[str, str]:
-    """Retorna (resposta, fonte). Usa OpenAI se configurada, senão o motor offline."""
+    """Retorna (resposta, fonte). Usa o LLM se configurado, senão o motor offline."""
     if cliente and cliente.configurado and _mensagens_vendedor(historico):
         try:
             mensagens = [{"role": "system", "content": _sistema_persona()}, *historico]
-            return cliente.conversar(mensagens, temperatura=0.8), "openai"
+            return cliente.conversar(mensagens, temperatura=0.8), cliente.provedor
         except Exception:  # noqa: BLE001
             pass
     return responder_offline(historico), "offline"
@@ -244,7 +244,7 @@ def avaliar(cliente: LLMClient | None, historico: list[dict]) -> dict:
                 "nota": int(max(1, min(10, int(dados["nota"])))),
                 "pontos_fortes": list(dados["pontos_fortes"]),
                 "pontos_melhoria": list(dados["pontos_melhoria"]),
-                "fonte": "openai",
+                "fonte": cliente.provedor,
             }
         except Exception:  # noqa: BLE001
             pass

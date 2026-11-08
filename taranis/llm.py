@@ -1,4 +1,4 @@
-"""Camada de integração com a OpenAI, com fallback determinístico offline."""
+"""Camada de integração com LLMs compatíveis com a API da OpenAI (DeepSeek ou OpenAI)."""
 
 from __future__ import annotations
 
@@ -6,7 +6,23 @@ import json
 import os
 import re
 
-MODELO_PADRAO = "gpt-4o-mini"
+PROVEDORES = {
+    "deepseek": {
+        "nome": "DeepSeek",
+        "chave": "DEEPSEEK_API_KEY",
+        "modelo_var": "DEEPSEEK_MODEL",
+        "modelo": "deepseek-chat",
+        "base_url": "https://api.deepseek.com",
+    },
+    "openai": {
+        "nome": "OpenAI",
+        "chave": "OPENAI_API_KEY",
+        "modelo_var": "OPENAI_MODEL",
+        "modelo": "gpt-4o-mini",
+        "base_url": None,
+    },
+}
+MODELO_PADRAO = PROVEDORES["openai"]["modelo"]
 
 
 def _ler_segredo(nome: str) -> str | None:
@@ -22,19 +38,34 @@ def _ler_segredo(nome: str) -> str | None:
     return os.environ.get(nome) or None
 
 
+def _detectar_provedor() -> tuple[str, str | None]:
+    """Retorna o primeiro provedor com chave configurada (DeepSeek tem prioridade)."""
+    for codigo, cfg in PROVEDORES.items():
+        chave = _ler_segredo(cfg["chave"])
+        if chave:
+            return codigo, chave
+    return "openai", None
+
+
 class LLMClient:
     """Cliente simples para Chat Completions. Nunca expõe a chave para a interface."""
 
-    def __init__(self, api_key: str | None = None, modelo: str | None = None):
-        self._api_key = api_key if api_key is not None else _ler_segredo("OPENAI_API_KEY")
-        self.modelo = modelo or _ler_segredo("OPENAI_MODEL") or MODELO_PADRAO
+    def __init__(self, api_key: str | None = None, modelo: str | None = None, provedor: str | None = None):
+        if api_key is not None:
+            codigo = provedor or "openai"
+        else:
+            codigo, api_key = _detectar_provedor()
+        cfg = PROVEDORES[codigo]
+        self._api_key = api_key
+        self.provedor = cfg["nome"]
+        self.modelo = modelo or _ler_segredo(cfg["modelo_var"]) or cfg["modelo"]
         self._cliente = None
         self.erro_importacao: str | None = None
         if self._api_key:
             try:
                 from openai import OpenAI
 
-                self._cliente = OpenAI(api_key=self._api_key)
+                self._cliente = OpenAI(api_key=self._api_key, base_url=cfg["base_url"])
             except ImportError as exc:
                 self.erro_importacao = str(exc)
 

@@ -145,3 +145,18 @@ def test_detectar_topicos_nao_confunde_fornecedor_com_dor():
 def test_formatar_brl_compacto():
     assert catalog.formatar_brl_compacto(4693630) == "R$ 4,69 mi"
     assert catalog.formatar_brl_compacto(234681.5) == "R$ 234,7 mil"
+
+
+def test_llm_deepseek_configura_base_url(monkeypatch):
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-teste")
+    cliente = LLMClient()
+    assert cliente.configurado
+    assert cliente.provedor == "DeepSeek" and cliente.modelo == "deepseek-chat"
+    assert str(cliente._cliente.base_url).startswith("https://api.deepseek.com")
+
+
+def test_llm_sem_chave_fica_offline(monkeypatch):
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+    assert not LLMClient().configurado

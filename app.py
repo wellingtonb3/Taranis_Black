@@ -39,15 +39,16 @@ def barra_lateral(cliente: LLMClient) -> LLMClient | None:
         st.markdown("**Motor de IA**")
         ativo = None
         if cliente.configurado:
-            usar = st.toggle(f"Usar OpenAI ({cliente.modelo})", value=True)
+            usar = st.toggle(f"Usar {cliente.provedor} ({cliente.modelo})", value=True)
             ativo = cliente if usar else None
         else:
             st.info(
-                "Modo **offline** (determinístico) ativo. Para ativar a OpenAI, defina "
-                "`OPENAI_API_KEY` em `.streamlit/secrets.toml` ou como variável de ambiente.",
+                "Modo **offline** (determinístico) ativo. Para ativar a IA, defina "
+                "`DEEPSEEK_API_KEY` ou `OPENAI_API_KEY` em `.streamlit/secrets.toml` "
+                "ou como variável de ambiente.",
                 icon="🧠",
             )
-        st.caption("Status: " + ("🟢 OpenAI" if ativo else "⚪ Offline"))
+        st.caption("Status: " + (f"🟢 {ativo.provedor}" if ativo else "⚪ Offline"))
         st.divider()
         st.markdown(ui.LGPD_HTML, unsafe_allow_html=True)
     return ativo
@@ -199,7 +200,7 @@ def aba_crm(cliente: LLMClient | None) -> None:
         return
     if meta.get("aviso"):
         st.warning(meta["aviso"])
-    fonte = "OpenAI" if meta["fonte"] == "openai" else "motor offline"
+    fonte = "motor offline" if meta["fonte"] == "offline" else meta["fonte"]
     st.caption(f"Regra aplicada: **{meta['regra']}** · Gerado por {fonte} · Rascunho editável")
 
     assunto = st.text_input("Assunto (máx. 6 palavras)", key=f"assunto_{lead['id']}")
@@ -272,7 +273,7 @@ def aba_simulador(cliente: LLMClient | None) -> None:
         with nota_col:
             st.markdown(f'<div class="tb-score">{avaliacao["nota"]}/10</div>', unsafe_allow_html=True)
             st.progress(avaliacao["nota"] / 10)
-            st.caption("Avaliado por " + ("OpenAI" if avaliacao["fonte"] == "openai" else "motor offline"))
+            st.caption("Avaliado por " + ("motor offline" if avaliacao["fonte"] == "offline" else avaliacao["fonte"]))
         with fortes_col:
             st.markdown("**✅ Pontos fortes**")
             st.markdown("\n".join(f"- {p}" for p in avaliacao["pontos_fortes"]))

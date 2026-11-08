@@ -5,7 +5,7 @@ Ela apoia a força de vendas B2B da Taranis Black (empresa fictícia de ergonomi
 280 colaboradores) a qualificar leads, contornar objeções com argumentos de valor, treinar negociação e
 traduzir ergonomia em retorno financeiro ao vivo com o cliente.
 
-> Funciona **100% offline** (motor determinístico) e, opcionalmente, com a **OpenAI** quando uma chave é configurada.
+> Funciona **100% offline** (motor determinístico) e, opcionalmente, com a **DeepSeek** ou a **OpenAI** quando uma chave é configurada.
 
 ---
 
@@ -84,16 +84,18 @@ streamlit run app.py
 
 O app abre em `http://localhost:8501`.
 
-### Ativando a OpenAI (opcional)
-Sem chave, tudo funciona no modo offline. Para usar a OpenAI, escolha **uma** opção:
+### Ativando a IA (opcional: DeepSeek ou OpenAI)
+Sem chave, tudo funciona no modo offline. Para usar um LLM, escolha **uma** opção:
 
-1. Copie `.streamlit/secrets.toml.example` para `.streamlit/secrets.toml` e preencha `OPENAI_API_KEY`.
+1. Copie `.streamlit/secrets.toml.example` para `.streamlit/secrets.toml` e preencha `DEEPSEEK_API_KEY`
+   (ou `OPENAI_API_KEY`).
 2. Ou defina a variável de ambiente antes de rodar:
-   - Windows (cmd): `set OPENAI_API_KEY=sk-...`
-   - Linux/macOS: `export OPENAI_API_KEY=sk-...`
+   - Windows (cmd): `set DEEPSEEK_API_KEY=sk-...`
+   - Linux/macOS: `export DEEPSEEK_API_KEY=sk-...`
 
-O modelo padrão é `gpt-4o-mini` (altere com `OPENAI_MODEL`). Na barra lateral é possível alternar entre OpenAI e
-offline. Se a API falhar, o app volta automaticamente ao modo offline.
+Modelos padrão: `deepseek-chat` (altere com `DEEPSEEK_MODEL`) e `gpt-4o-mini` (altere com `OPENAI_MODEL`).
+Se as duas chaves existirem, a DeepSeek tem prioridade. Na barra lateral é possível alternar entre a IA e o
+modo offline. Se a API falhar, o app volta automaticamente ao modo offline.
 O arquivo `secrets.toml` está no `.gitignore` e a chave nunca é exibida na interface.
 
 ### Testes
@@ -110,10 +112,10 @@ app.py                     # Interface Streamlit (4 abas + barra lateral LGPD)
 taranis/
   catalog.py               # Catálogo oficial, políticas comerciais e utilitários
   leads.py                 # Leitura da planilha, classificação das objeções e máscara LGPD
-  email_engine.py          # Regras IF/ELSE e geração de e-mails (offline e OpenAI)
+  email_engine.py          # Regras IF/ELSE e geração de e-mails (offline e LLM)
   simulator.py             # Persona Dr. Roberto Mendes, respostas e avaliação
   roi.py                   # Cálculo de ROI, payback e TCO
-  llm.py                   # Cliente OpenAI com fallback offline
+  llm.py                   # Cliente DeepSeek/OpenAI com fallback offline
   ui.py                    # CSS, ilustrações SVG e cards
 data/02_Leads_B2B_Comercial.xlsx
 docs/                      # Catálogo e índice do kit de dados do Challenge
