@@ -359,6 +359,7 @@ function infer(){
     const r=buildReasoning(ev,trajStats(main.pts),Pp);
     tokens=Math.round((r.text.length+r.traj.length)/3.6);S.inf.tokens+=tokens;S.inf.reasoned++;
     if(changed||!S.typing)showReasoning(r,ev);
+    else if(S.typing.done){const full=r.text+'\n\n'+r.traj;if(full!==S.typing.full){S.typing.full=full;S.typing.n=full.length;$('reasonText').textContent=full;}}
   }
   S.lastReasoned=doReason;S.lastTokens=tokens;
   if(ev.type!=='verde'||changed)S.lastEv=ev;
