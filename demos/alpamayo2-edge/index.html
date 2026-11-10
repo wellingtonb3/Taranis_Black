@@ -252,6 +252,7 @@ function ensureWorld(init){
   S.cars=S.cars.filter(c=>c.x>e.x-200&&c.x<e.x+320);
   S.peds=S.peds.filter(p=>Math.abs(p.y)<11&&p.x>e.x-150);
   S.cones=S.cones.filter(z=>z.x1>e.x-150);
+  while(S.cars.length>CFG.density){let k=-1,dm=60;S.cars.forEach((c,i)=>{const d=Math.abs(c.x-e.x);if(!c.cutin&&d>dm){dm=d;k=i;}});if(k<0)break;S.cars.splice(k,1);}
   let tries=0;while(S.cars.length<CFG.density&&tries++<6)spawnCar(init);
 }
 
