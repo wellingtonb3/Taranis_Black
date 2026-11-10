@@ -139,3 +139,9 @@ tests/                     # Testes unitários e de interface (Streamlit AppTest
   (o catálogo original prevê prazos menores para alguns itens e componentes).
 - Os demais dados (preços, especificações, prazos, frete e faturamento) seguem o catálogo oficial do kit.
 - Os resultados da calculadora são estimativas consultivas e devem ser validados com o cliente.
+
+---
+
+## Demos extras
+
+- [`demos/alpamayo2-edge/`](demos/alpamayo2-edge/) – simulador web educacional inspirado no NVIDIA Alpamayo 2 Edge (direção autônoma com raciocínio causal e painel de dados). Abra o `index.html` no navegador.

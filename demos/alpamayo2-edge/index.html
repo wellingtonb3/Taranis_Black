@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Alpamayo 2 Edge · Simulador de Direção com Raciocínio (demo)</title>
+<style>
+:root{--bg:#0a0e0b;--panel:#111713;--panel2:#0d120f;--line:#223028;--green:#76b900;--text:#e6efe8;--mut:#8fa197;--yel:#ffcc33;--red:#ff5252;--blue:#4db8ff}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:13px/1.45 system-ui,"Segoe UI",Roboto,sans-serif}
+header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--line);background:linear-gradient(90deg,#122012,#0a0e0b 60%)}
+.logo{font-weight:800;letter-spacing:.4px;font-size:18px}
+.logo b{color:var(--green)}
+.badge{border:1px solid var(--line);border-radius:999px;padding:2px 9px;color:var(--mut);font-size:11px;white-space:nowrap}
+.badge.g{border-color:#3d5c10;color:#b8e36a}
+.wrap{display:grid;grid-template-columns:250px minmax(0,1fr) 380px;gap:10px;padding:10px}
+@media(max-width:1200px){.wrap{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:10px}
+h3{margin:0 0 8px;font-size:11px;text-transform:uppercase;letter-spacing:.9px;color:var(--mut);font-weight:700}
+.cams{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.cam{position:relative;background:#000;border-radius:6px;overflow:hidden;border:1px solid var(--line)}
+.cam canvas{width:100%;display:block;aspect-ratio:16/9}
+.cam .lbl{position:absolute;left:6px;top:4px;font-size:10.5px;background:#000b;padding:1px 6px;border-radius:4px}
+.cam .frames{position:absolute;right:6px;bottom:5px;display:flex;gap:3px;align-items:center;font-size:9.5px;color:#cfd8d2;background:#000a;padding:1px 5px;border-radius:4px}
+.frames i{width:6px;height:6px;border-radius:50%;background:var(--green);opacity:.35;display:inline-block}
+.frames i.on{opacity:1;box-shadow:0 0 6px var(--green)}
+canvas#bev,canvas#chart{width:100%;display:block;border-radius:6px;background:#0c120e}
+.row{display:flex;gap:6px;flex-wrap:wrap}
+button,select{background:#18211b;color:var(--text);border:1px solid #2e3d33;border-radius:7px;padding:6px 9px;font:inherit;cursor:pointer}
+button:hover{border-color:var(--green)}
+button.ev{width:100%;text-align:left;margin-bottom:5px}
+button.on{background:#25360f;border-color:var(--green)}
+select{width:100%}
+label{display:block;color:var(--mut);font-size:11.5px;margin:9px 0 3px}
+.seg{display:flex;gap:4px}.seg button{flex:1;padding:5px 4px;font-size:12px}
+.stats{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:8px}
+@media(max-width:1500px){.stats{grid-template-columns:repeat(3,1fr)}}
+.stat{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+.stat .k{font-size:10.5px;color:var(--mut)}
+.stat .v{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums}
+.stat .v small{font-size:11px;color:var(--mut);font-weight:500}
+#status{display:inline-block;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:.4px}
+#status.fast{background:#1d3309;color:#b8e36a}#status.think{background:#3a2e05;color:var(--yel)}#status.off{background:#2a2a2a;color:#aaa}
+#reasonTitle{font-weight:700;font-size:14px;margin:8px 0 4px}
+#reasonText{white-space:pre-wrap;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:9px;min-height:170px;font-size:12.5px}
+#reasonText .caret{display:inline-block;width:7px;height:13px;background:var(--yel);vertical-align:-2px;animation:b 1s steps(2) infinite}
+@keyframes b{50%{opacity:0}}
+.judge{margin-top:7px;font-size:12px;color:var(--mut);display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap}
+.judge b{color:var(--text)}
+.bar{height:6px;background:#1c251f;border-radius:4px;overflow:hidden;margin-top:4px}.bar i{display:block;height:100%;background:var(--green)}
+#log{max-height:200px;overflow:auto;font-size:12px}
+#log div{padding:4px 0;border-bottom:1px dashed #1f2a23;display:flex;gap:6px}
+#log .t{color:var(--mut);font-variant-numeric:tabular-nums;min-width:48px}
+#log .s{margin-left:auto;color:#b8e36a;white-space:nowrap}
+#vqaA{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px;min-height:60px;margin-top:6px;font-size:12.5px;white-space:pre-wrap}
+.vqa button{font-size:12px;padding:5px 7px}
+.big{font-size:28px;font-weight:800;color:var(--green);font-variant-numeric:tabular-nums;line-height:1.1}
+.mut{color:var(--mut)}
+.toast{position:fixed;left:50%;top:14px;transform:translateX(-50%);background:#1d2a0d;border:1px solid var(--green);color:#dff5b8;padding:7px 14px;border-radius:8px;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;z-index:9}
+.toast.show{opacity:1}.toast.bad{background:#3a1010;border-color:var(--red);color:#ffd0d0}
+footer{padding:4px 16px 16px;color:var(--mut);font-size:11.5px}
+footer a{color:#9fd14a}
+.chk{display:flex;align-items:center;gap:6px;color:var(--text);font-size:12px;margin:6px 0}
+.chk input{accent-color:var(--green)}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><b>ALPAMAYO 2 EDGE</b> · Simulador de direção com raciocínio</div>
+  <span class="badge g">VLA · 2B parâmetros</span>
+  <span class="badge">6 câmeras · 22 quadros · 20 poses → 64 waypoints / 6,4 s</span>
+  <span class="badge">DRIVE AGX Thor (simulado)</span>
+  <span class="badge" style="margin-left:auto">Demo educacional — não executa o modelo real</span>
+</header>
+<div class="toast" id="toast"></div>
+<div class="wrap">
+  <!-- CONTROLES -->
+  <div>
+    <div class="panel">
+      <h3>Simulação</h3>
+      <div class="row"><button id="btnPause" style="flex:1">⏸ Pausar</button><button id="btnReset" style="flex:1">↺ Reiniciar</button></div>
+      <label>Velocidade da simulação</label>
+      <div class="seg" id="segSpeed"><button data-v="0.5">0,5×</button><button data-v="1" class="on">1×</button><button data-v="2">2×</button><button data-v="5">5×</button><button data-v="10">10×</button></div>
+      <label>Densidade de tráfego: <b id="densV">8</b> veículos</label>
+      <input type="range" id="dens" min="2" max="16" value="8" style="width:100%;accent-color:#76b900">
+      <div class="chk"><input type="checkbox" id="auto" checked><span>Eventos automáticos aleatórios</span></div>
+      <div class="chk"><input type="checkbox" id="fov"><span>Mostrar campos de visão das câmeras</span></div>
+    </div>
+    <div class="panel">
+      <h3>Provocar situações</h3>
+      <button class="ev" data-ev="ped">🚶 Pedestre atravessando fora da faixa</button>
+      <button class="ev" data-ev="cut">🚗 Carro cortando a frente</button>
+      <button class="ev" data-ev="brake">🛑 Freada brusca do carro da frente</button>
+      <button class="ev" data-ev="cones">🚧 Obra bloqueando a faixa</button>
+    </div>
+    <div class="panel">
+      <h3>Entradas do modelo</h3>
+      <label>Instrução de navegação (texto)</label>
+      <select id="nav"><option value="reta">Siga em frente</option><option value="esquerda">Mantenha-se na faixa da esquerda</option><option value="direita">Mantenha-se na faixa da direita</option></select>
+      <label>Clima / iluminação</label>
+      <select id="weather"><option value="dia">Dia, pista seca</option><option value="noite">Noite</option><option value="chuva">Chuva</option></select>
+    </div>
+    <div class="panel">
+      <h3>Fine-tuning por frota</h3>
+      <select id="profile"><option value="conservador">Frota A · Táxi urbano (conservador)</option><option value="padrao" selected>Frota B · Padrão</option><option value="esportivo">Frota C · Premium esportivo</option></select>
+      <div id="profDesc" class="mut" style="font-size:11.5px;margin-top:6px"></div>
+    </div>
+    <div class="panel">
+      <h3>Raciocínio</h3>
+      <div class="seg" id="segMode"><button data-v="adaptativo" class="on">Adaptativo</button><button data-v="sempre">Sempre</button><button data-v="nunca">Nunca</button></div>
+      <div class="mut" style="font-size:11.5px;margin-top:6px">Adaptativo: só gera a explicação quando a cena muda e exige decisão; em situação rotineira entrega apenas a trajetória, economizando processamento.</div>
+    </div>
+  </div>
+
+  <!-- CENTRO -->
+  <div>
+    <div class="panel">
+      <h3>Entrada · câmeras ao redor do veículo (quadros usados por inferência)</h3>
+      <div class="cams" id="cams"></div>
+    </div>
+    <div class="panel">
+      <h3>Visão de cima · trajetória prevista (64 waypoints, 0,1–6,4 s) + candidatas + histórico de 20 poses</h3>
+      <canvas id="bev" width="1150" height="260"></canvas>
+      <div class="stats">
+        <div class="stat"><div class="k">Velocidade</div><div class="v" id="sV">0</div></div>
+        <div class="stat"><div class="k">Aceleração</div><div class="v" id="sA">0</div></div>
+        <div class="stat"><div class="k">Curvatura</div><div class="v" id="sK">0</div></div>
+        <div class="stat"><div class="k">Distância</div><div class="v" id="sD">0</div></div>
+        <div class="stat"><div class="k">Inferências (10 Hz)</div><div class="v" id="sI">0</div></div>
+        <div class="stat"><div class="k">Incidentes c/ culpa</div><div class="v" id="sC">0</div></div>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>Telemetria · velocidade (verde), aceleração (azul), momentos de raciocínio (amarelo) — últimos 30 s</h3>
+      <canvas id="chart" width="1150" height="130"></canvas>
+    </div>
+  </div>
+
+  <!-- DIREITA -->
+  <div>
+    <div class="panel">
+      <h3>Saída · raciocínio Chain-of-Causation</h3>
+      <span id="status" class="fast">MODO RÁPIDO</span> <span id="statusInfo" class="mut" style="font-size:11.5px"></span>
+      <div id="reasonTitle">—</div>
+      <div id="reasonText">Aguardando uma situação que exija raciocínio…</div>
+      <div class="judge"><span>AlpaJudge (simulado): <b id="judgeS">—</b></span><span id="judgeSel"></span></div>
+      <div class="bar"><i id="judgeBar" style="width:0"></i></div>
+    </div>
+    <div class="panel">
+      <h3>Dados analisados nesta corrida</h3>
+      <div class="big" id="dTotal">0</div>
+      <div class="mut" style="font-size:11.5px">valores de entrada (pixels RGB + poses + texto)</div>
+      <div class="bar" style="margin-top:8px;height:8px"><i id="dBar" style="width:0;background:linear-gradient(90deg,#76b900,#c5f05a)"></i></div>
+      <div class="mut" style="font-size:11.5px;margin-top:4px" id="dRef"></div>
+      <div class="stats" style="grid-template-columns:repeat(3,1fr)">
+        <div class="stat"><div class="k">Por inferência</div><div class="v" id="dInf">0</div></div>
+        <div class="stat"><div class="k">Por segundo</div><div class="v" id="dSec">0</div></div>
+        <div class="stat"><div class="k">Tokens de raciocínio</div><div class="v" id="dTok">0</div></div>
+        <div class="stat"><div class="k">Inferências c/ raciocínio</div><div class="v" id="dRea">0</div></div>
+        <div class="stat"><div class="k">Compute economizado</div><div class="v" id="dEco">0</div></div>
+        <div class="stat"><div class="k">Exemplos p/ treino</div><div class="v" id="dSel">0</div></div>
+      </div>
+    </div>
+    <div class="panel vqa">
+      <h3>Pergunte ao modelo (perguntas livres sobre a cena)</h3>
+      <div class="row">
+        <button data-q="ver">O que você está vendo?</button>
+        <button data-q="porque">Por que está fazendo isso?</button>
+        <button data-q="risco">Qual o maior risco agora?</button>
+        <button data-q="esq">Posso ir para a esquerda?</button>
+      </div>
+      <div id="vqaA" class="mut">Clique em uma pergunta.</div>
+    </div>
+    <div class="panel">
+      <h3>Histórico de decisões explicadas</h3>
+      <div id="log"><div class="mut">—</div></div>
+    </div>
+  </div>
+</div>
+<footer>
+  <b>Sobre esta demo:</b> não roda o modelo real. Ela reproduz o <i>formato</i> de entrada e saída do NVIDIA Alpamayo 2 Edge: 6 câmeras com 22 quadros, 20 poses de egomovimento (−1,9 a 0 s) e uma instrução de navegação entram; saem uma trajetória de 64 waypoints (0,1 a 6,4 s) e um raciocínio em cadeia de causalidade, gerado de forma adaptativa. As decisões vêm de um planejador simples baseado em regras (IDM + troca de faixa) e as explicações vêm de modelos de texto prontos (o modelo real escreve em inglês). As notas do AlpaJudge também são simuladas.
+  O modelo real precisa de GPU NVIDIA (o model card cita testes em 1× H100 80GB, com recomendação de no mínimo 16 GB) ou do DRIVE AGX Thor no veículo. O orçamento de 448×448 pixels por quadro e a referência de "8 bilhões de pontos de dados por corrida" (Oracle Red Bull Racing, F1) são ilustrativos.
+  · <a href="https://huggingface.co/nvidia/Alpamayo2-Edge" target="_blank">Model card</a> · <a href="https://github.com/NVlabs/alpamayo2-edge" target="_blank">Código</a>
+</footer>
+
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const D2R=Math.PI/180, DT=0.05;
+const LANES=[3.5,0,-3.5], LANE_NAMES=['esquerda','central','direita'];
+const EGO_L=4.7, EGO_W=1.9, CUT_V=1.4, CYCLE=26;
+const PIX=448*448, VALUES_PER_INF=22*PIX*3+20*12+24, ORACLE_REF=8e9;
+const CAMS=[
+  {id:0,name:'Lateral esquerda',short:'lateral esq. (0)',yaw:70,fov:120,frames:3},
+  {id:1,name:'Frontal grande-angular',short:'frontal grande-angular (1)',yaw:0,fov:120,frames:5},
+  {id:2,name:'Lateral direita',short:'lateral dir. (2)',yaw:-70,fov:120,frames:3},
+  {id:3,name:'Traseira esquerda',short:'traseira esq. (3)',yaw:145,fov:70,frames:3},
+  {id:6,name:'Frontal tele',short:'frontal tele (6)',yaw:0,fov:30,frames:5},
+  {id:5,name:'Traseira direita',short:'traseira dir. (5)',yaw:-145,fov:70,frames:3}];
+const PROFILES={
+  conservador:{v0:50,T:2.0,amax:1.3,b:2.0,s0:4,overtake:false,gapF:24,gapR:18,desc:'Mais distância (2,0 s), acelera devagar, nunca ultrapassa. Ideal para passageiros.'},
+  padrao:{v0:60,T:1.5,amax:1.8,b:2.5,s0:3,overtake:true,gapF:18,gapR:14,desc:'Intervalo de 1,5 s, ultrapassa veículos lentos quando há brecha.'},
+  esportivo:{v0:72,T:1.1,amax:2.6,b:3.0,s0:2.5,overtake:true,gapF:14,gapR:10,desc:'Intervalo de 1,1 s, acelera forte e aceita brechas menores.'}};
+const WEATHER={dia:{v:1,T:1},noite:{v:0.92,T:1.15},chuva:{v:0.8,T:1.35}};
+const NAV_TXT={reta:'Siga em frente',esquerda:'Mantenha-se na faixa da esquerda',direita:'Mantenha-se na faixa da direita'};
+const COLORS=['#c9d1d9','#8892a0','#3a6ea5','#a33b3b','#d0a24c','#5a5f66','#e8e8e8','#2e7d5b','#6b4fa3'];
+const TYPE_LABEL={pedestre:'Pedestre na via',sinal:'Semáforo à frente',veiculo:'Seguindo veículo mais lento',freada:'Freada brusca à frente',cutin:'Veículo cortando a frente',obra:'Obra: mudança de faixa','obra-espera':'Obra: aguardando brecha',nav:'Navegação: mudança de faixa','nav-espera':'Navegação: aguardando brecha',ultrapassagem:'Ultrapassagem',verde:'Sinal abriu','amarelo-passa':'Amarelo: seguir',livre:'Pista livre'};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const kmh=v=>v*3.6;
+const f0=n=>Math.round(n).toLocaleString('pt-BR');
+const f1=n=>n.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
+const f2=n=>n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const big=n=>n>=1e9?f2(n/1e9)+' bi':n>=1e6?f1(n/1e6)+' mi':n>=1e3?f1(n/1e3)+' mil':f0(n);
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const nearestLane=y=>{let b=0;for(let i=1;i<3;i++)if(Math.abs(LANES[i]-y)<Math.abs(LANES[b]-y))b=i;return b;};
+
+const CFG={profile:'padrao',weather:'dia',nav:'reta',mode:'adaptativo',speed:1,density:8,fov:false,auto:true,paused:false};
+let S;
+function P(){const p=PROFILES[CFG.profile],w=WEATHER[CFG.weather];return {...p,v0:p.v0/3.6*w.v,T:p.T*w.T};}
+
+function lightState(L,t){const p=((t+L.off)%CYCLE+CYCLE)%CYCLE;return p<13?'verde':p<16?'amarelo':'vermelho';}
+function lightRemain(L,t){const p=((t+L.off)%CYCLE+CYCLE)%CYCLE;return p<13?13-p:p<16?16-p:CYCLE-p;}
+
+function reset(){
+  S={t:0,step:0,nextId:1,ego:{x:0,y:0,h:0,v:13,a:0,k:0,tl:1},cars:[],peds:[],lights:[],cones:[],hist:[],lastLightX:140,
+    inf:{count:0,reasoned:0,tokens:0,data:0,selected:0},traj:[],cands:[],dist:0,incidents:0,colliding:new Set(),
+    lastKey:null,lastEv:null,curEvent:null,typing:null,chart:[],laneCooldown:0,nextAuto:12,frameTick:0,lastReasoned:false,lastTokens:0};
+  S.lights.push({id:S.nextId++,x:S.lastLightX,off:rnd(0,CYCLE),lastCyc:-1});
+  for(let i=0;i<30;i++)ensureWorld(true);
+  for(let i=0;i<20;i++)S.hist.push({x:-(20-i)*1.3,y:0});
+  $('reasonTitle').textContent='—';$('reasonText').textContent='Aguardando uma situação que exija raciocínio…';
+  $('judgeS').textContent='—';$('judgeSel').textContent='';$('judgeBar').style.width='0';
+  $('log').innerHTML='<div class="mut">—</div>';$('vqaA').textContent='Clique em uma pergunta.';
+  infer();
+}
+
+function makeCar(lane,x,v0){const truck=Math.random()<0.12;return {id:S.nextId++,lane,x,y:LANES[lane],v:v0,v0,a:0,len:truck?8:4.5,w:truck?2.4:1.85,ht:truck?3.1:1.5,color:truck?'#d8d2c4':COLORS[Math.floor(Math.random()*COLORS.length)],ty:null,cutin:false,brakeUntil:-1,truck,hd:0};}
+function spawnCar(init){
+  const e=S.ego,lane=Math.floor(Math.random()*3);
+  const x=init?e.x-90+Math.random()*290:(Math.random()<0.65?e.x+200+Math.random()*100:e.x-150-Math.random()*40);
+  if(Math.abs(x-e.x)<20&&Math.abs(LANES[lane]-e.y)<2.5)return;
+  if(S.cars.some(c=>Math.abs(c.y-LANES[lane])<2.5&&Math.abs(c.x-x)<24))return;
+  if(S.cones.some(z=>z.lane===lane&&x>z.x0-30&&x<z.x1+10))return;
+  if(S.lights.some(L=>Math.abs(x-(L.x-4))<10))return;
+  const v0=x>e.x?rnd(8,15):rnd(15,19);
+  S.cars.push(makeCar(lane,x,v0));
+}
+function ensureWorld(init){
+  const e=S.ego;
+  while(S.lastLightX<e.x+650){S.lastLightX+=rnd(360,640);S.lights.push({id:S.nextId++,x:S.lastLightX,off:rnd(0,CYCLE),lastCyc:-1});}
+  S.lights=S.lights.filter(L=>L.x>e.x-150);
+  S.cars=S.cars.filter(c=>c.x>e.x-200&&c.x<e.x+320);
+  S.peds=S.peds.filter(p=>Math.abs(p.y)<11&&p.x>e.x-150);
+  S.cones=S.cones.filter(z=>z.x1>e.x-150);
+  let tries=0;while(S.cars.length<CFG.density&&tries++<6)spawnCar(init);
+}
+
+function carAt(c,t){
+  let x,v;
+  if(c.a<-0.5&&c.v>0){const ts=Math.min(t,c.v/-c.a);x=c.x+c.v*ts+0.5*c.a*ts*ts;v=Math.max(0,c.v+c.a*t);}
+  else{x=c.x+c.v*t;v=c.v;}
+  let y=c.y;if(c.ty!=null){const d=c.ty-c.y;y=c.y+Math.sign(d)*Math.min(Math.abs(d),CUT_V*t);}
+  return {x,y,v};
+}
+function pedBlocks(p,y1,y2,t){
+  const py=p.y+p.vy*t;
+  const onRoad=Math.abs(py)<7.2||(Math.abs(py)<9.8&&Math.sign(p.vy)!==Math.sign(py));
+  if(!onRoad)return false;
+  const lo=Math.min(y1,y2)-2.6,hi=Math.max(y1,y2)+2.6;
+  return !((p.vy>0&&py>hi)||(p.vy<0&&py<lo));
+}
+function gapOK(l,x,self){
+  for(const o of S.cars){if(o===self)continue;if(Math.abs(o.y-LANES[l])<2.4||(o.ty!=null&&Math.abs(o.ty-LANES[l])<0.5)){const dx=o.x-x;if(dx>-14&&dx<16)return false;}}
+  const dx=S.ego.x-x;if(Math.abs(S.ego.y-LANES[l])<2.4&&dx>-14&&dx<16)return false;
+  return !S.cones.some(z=>z.lane===l&&z.x0-x<70&&z.x1>x-10);
+}
+
+/* ---------- planejador do ego (faz o papel do "modelo") ---------- */
+function longAccel(e,t,Pp,info,tl){
+  const v=e.v,v0=Pp.v0,aFree=Pp.amax*(1-Math.pow(v/v0,4));
+  let a=aFree;
+  const yT=tl!=null?LANES[tl]:e.y,changing=Math.abs(yT-e.y)>0.5;
+  const inCorr=(y,h)=>Math.abs(y-e.y)<h||(changing&&Math.abs(y-yT)<h);
+  const obs=(gap,vl,type,obj)=>{gap=Math.max(gap,0.2);const ss=Pp.s0+Math.max(0,v*Pp.T+v*(v-vl)/(2*Math.sqrt(Pp.amax*Pp.b)));const ai=Pp.amax*(1-Math.pow(v/v0,4)-Math.pow(ss/gap,2));if(ai<a){a=ai;if(info)info.cause={type,obj,gap,vl};}};
+  for(const c of S.cars){const st=carAt(c,t),dx=st.x-e.x;if(dx<=0.5||dx>150)continue;if(!inCorr(st.y,2.3))continue;obs(dx-(c.len+EGO_L)/2,st.v,'veiculo',c);}
+  for(const L of S.lights){const d=L.x-7-e.x-EGO_L/2;if(d<-0.5||d>130)continue;const ls=lightState(L,S.t+t);if(ls==='vermelho'||(ls==='amarelo'&&d>v*v/(2*3.0)+1))obs(d+Pp.s0-1,0,'sinal',L);}
+  for(const p of S.peds){if(!pedBlocks(p,e.y,yT,t))continue;const dx=p.x-e.x;if(dx<=0||dx>120)continue;obs(dx-EGO_L/2-2.5,0,'pedestre',p);}
+  for(const z of S.cones){if(!inCorr(LANES[z.lane],2.6))continue;const dx=z.x0-e.x-EGO_L/2;if(dx<0)continue;if(changing&&z.lane!==tl){if(dx<25){const ai=(3-v)*1.5;if(ai<a){a=ai;if(info)info.cause={type:'obra',obj:z,gap:dx,vl:0};}}continue;}obs(dx,0,'obra',z);}
+  a=clamp(a,-8,Pp.amax);
+  if(info){info.a=a;info.aFree=aFree;}
+  return a;
+}
+function latCurv(e,tl){const ty=LANES[tl];const hd=Math.atan2(ty-e.y,e.v<5?4:Math.max(9,e.v*1.7));return clamp(2.4*(hd-e.h)/Math.max(e.v,1.5),-0.2,0.2);}
+function integrate(e,a,k,dt){e.v=Math.max(0,e.v+a*dt);e.h+=e.v*k*dt;e.x+=e.v*Math.cos(e.h)*dt;e.y+=e.v*Math.sin(e.h)*dt;}
+function rollout(Pp,tl){
+  const e={x:S.ego.x,y:S.ego.y,h:S.ego.h,v:S.ego.v};const pts=[];let info=null;
+  for(let i=1;i<=64;i++){const t=(i-1)*0.1,inf={};const a=longAccel(e,t,Pp,inf,tl),k=latCurv(e,tl);integrate(e,a,k,0.1);pts.push({x:e.x,y:e.y,h:e.h,v:e.v,a,k});if(i===1)info=inf;}
+  return {pts,info};
+}
+function leadIn(l,e){let best=null;for(const c of S.cars){if(Math.abs(c.y-LANES[l])>2.2)continue;const dx=c.x-e.x;if(dx<=0)continue;if(!best||dx<best.dx)best={c,dx};}return best;}
+function redAhead(d){const e=S.ego;return S.lights.some(L=>L.x-7-e.x>0&&L.x-7-e.x<d&&lightState(L,S.t)!=='verde');}
+function laneFreeEgo(l,Pp){
+  const e=S.ego;
+  for(const c of S.cars){if(!(Math.abs(c.y-LANES[l])<2.4||(c.ty!=null&&Math.abs(c.ty-LANES[l])<0.5)))continue;const dx=c.x-e.x,rel=c.v-e.v;if(dx>-(Pp.gapR+Math.max(0,rel)*2.5)&&dx<Pp.gapF+Math.max(0,-rel)*2)return false;}
+  return !S.cones.some(z=>z.lane===l&&z.x0-e.x<80&&z.x1>e.x-5);
+}
+function blockerIn(l){const e=S.ego;let b=null;for(const c of S.cars){if(Math.abs(c.y-LANES[l])>2.4)continue;const d=c.x-e.x;if(!b||Math.abs(d)<Math.abs(b.d))b={c,d};}return b;}
+function decideLane(Pp){
+  const e=S.ego,cur=e.tl,res={reason:null};
+  if(Math.abs(e.y-LANES[cur])>0.4||S.t<S.laneCooldown)return res;
+  const tryL=(l,reason,extra)=>{if(l<0||l>2||l===cur)return false;if(laneFreeEgo(l,Pp)){e.tl=l;S.laneCooldown=S.t+3.5;Object.assign(res,{reason,from:cur,to:l},extra||{});return true;}return false;};
+  const z=S.cones.find(z=>z.lane===cur&&z.x0-e.x>0&&z.x0-e.x<100);
+  if(z){const opts=[cur-1,cur+1].filter(l=>l>=0&&l<=2);for(const l of opts)if(tryL(l,'obra',{obj:z}))return res;Object.assign(res,{reason:'obra-espera',obj:z,from:cur,to:opts[0]});return res;}
+  const want=CFG.nav==='esquerda'?0:CFG.nav==='direita'?2:null;
+  if(want!=null&&want!==cur){const l=cur+Math.sign(want-cur);if(tryL(l,'nav'))return res;Object.assign(res,{reason:'nav-espera',from:cur,to:l,blocker:blockerIn(l)});return res;}
+  if(Pp.overtake){
+    const lead=leadIn(cur,e);
+    if(lead&&lead.dx<45&&lead.c.v<0.8*Pp.v0&&lead.c.v>2&&lead.c.a>-1&&!redAhead(90)){
+      const order=want===2?[cur+1,cur-1]:[cur-1,cur+1];
+      for(const l of order){if(l<0||l>2)continue;const l2=leadIn(l,e);if(l2&&l2.dx<60&&l2.c.v<lead.c.v+2)continue;if(tryL(l,'ultrapassagem',{obj:lead.c}))return res;}
+    }
+  }
+  return res;
+}
+
+/* ---------- inferência a 10 Hz ---------- */
+function camsFor(wx,wy){
+  const e=S.ego,dx=wx-e.x,dy=wy-e.y,d=Math.hypot(dx,dy);const ang=Math.atan2(dy,dx)/D2R-e.h/D2R;const out=[];
+  for(const c of CAMS){let df=((ang-c.yaw)%360+540)%360-180;if(Math.abs(df)<=c.fov/2&&d<(c.id===6?250:90))out.push(c.short);}
+  return out.length?out.join(', '):'câmeras frontais';
+}
+function trajStats(pts){let aMin=0,vMin=1e9;for(const p of pts){aMin=Math.min(aMin,p.a);vMin=Math.min(vMin,p.v);}const e=S.ego,l=pts[pts.length-1];let dist=0,px=e.x,py=e.y;for(const p of pts){dist+=Math.hypot(p.x-px,p.y-py);px=p.x;py=p.y;}return {vEnd:l.v,aMin,vMin,dist};}
+
+function infer(){
+  const Pp=P(),e=S.ego;
+  const lane=decideLane(Pp);
+  const main=rollout(Pp,e.tl);
+  const c2=rollout({...Pp,T:Pp.T*1.4,amax:Pp.amax*0.8},e.tl);
+  const c3=rollout({...Pp,T:Pp.T*0.75,amax:Pp.amax*1.2},e.tl);
+  const info=main.info;let ev=null,causeEv=null;
+  if(info.cause&&info.a<info.aFree-0.4){const c=info.cause;let type=c.type;if(type==='veiculo'&&c.obj.brakeUntil>S.t-0.5)type='freada';causeEv={type,obj:c.obj,gap:c.gap,key:type+':'+c.obj.id+':'+(type==='sinal'?lightState(c.obj,S.t):'')};}
+  const cut=S.cars.find(c=>c.cutin&&c.ty!=null&&c.x>e.x&&c.x-e.x<60&&Math.abs(c.ty-LANES[nearestLane(e.y)])<0.5);
+  if(cut)ev={type:'cutin',obj:cut,gap:cut.x-e.x-(cut.len+EGO_L)/2,key:'cutin:'+cut.id};
+  else if(causeEv&&(causeEv.type==='pedestre'||causeEv.type==='freada'||info.a<-2.5))ev=causeEv;
+  else if(lane.reason)ev={type:lane.reason,...lane,key:'lane:'+lane.reason+':'+lane.to};
+  else if(causeEv)ev=causeEv;
+  else{
+    const yl=S.lights.find(L=>{const d=L.x-7-e.x;return d>0&&d<45&&lightState(L,S.t)==='amarelo';});
+    if(yl&&e.v>5)ev={type:'amarelo-passa',obj:yl,key:'ap:'+yl.id};
+    else if(S.lastEv&&S.lastEv.type==='sinal'&&e.v<4)ev={type:'verde',obj:S.lastEv.obj,key:'verde:'+S.lastEv.obj.id};
+    else ev={type:'livre',key:'livre'};
+  }
+  const changed=ev.key!==S.lastKey;
+  const doReason=CFG.mode==='sempre'||(CFG.mode==='adaptativo'&&changed&&ev.type!=='livre');
+  S.inf.count++;S.inf.data+=VALUES_PER_INF;
+  S.traj=main.pts;S.cands=[c2.pts,c3.pts];S.curEvent=ev;S.frameTick++;
+  let tokens=0;
+  if(doReason){
+    const r=buildReasoning(ev,trajStats(main.pts),Pp);
+    tokens=Math.round((r.text.length+r.traj.length)/3.6);S.inf.tokens+=tokens;S.inf.reasoned++;
+    if(changed||!S.typing)showReasoning(r,ev);
+  }
+  S.lastReasoned=doReason;S.lastTokens=tokens;
+  if(ev.type!=='verde'||changed)S.lastEv=ev;
+  S.lastKey=ev.key;
+  const st=$('status');
+  if(CFG.mode==='nunca'){st.className='off';st.textContent='RACIOCÍNIO DESLIGADO';$('statusInfo').textContent='só trajetória';}
+  else if(doReason){st.className='think';st.textContent='RACIOCINANDO';$('statusInfo').textContent='~'+tokens+' tokens nesta inferência';}
+  else{st.className='fast';st.textContent='MODO RÁPIDO';$('statusInfo').textContent='situação rotineira: só trajetória, sem texto';}
+}
+
+function buildReasoning(ev,tr,Pp){
+  const e=S.ego,v=kmh(e.v),vE=kmh(tr.vEnd),lane=LANE_NAMES[nearestLane(e.y)];
+  const wx=CFG.weather==='chuva'?' Pista molhada: distância de seguimento ampliada em 35%.':CFG.weather==='noite'?' Noite: visibilidade reduzida, margem extra de 15%.':'';
+  const brake=f1(Math.max(0,-tr.aMin));let obs,cause,dec;
+  switch(ev.type){
+  case 'pedestre':{const p=ev.obj,d=p.x-e.x;obs=`Pedestre atravessando ${p.vy>0?'da direita para a esquerda':'da esquerda para a direita'} a ${f0(d)} m à frente, ${p.jay?'FORA da faixa de pedestres':'na faixa de pedestres'}. Visto por: ${camsFor(p.x,p.y)}.`;
+    cause=`O pedestre está, ou estará, dentro do meu corredor de passagem e tem prioridade; tempo até o conflito ≈ ${f1(d/Math.max(e.v,0.5))} s.`;
+    dec=tr.vEnd<0.5?`Desacelerar de ${f0(v)} km/h até parar (pico ${brake} m/s²), mantendo a faixa ${lane}, e aguardar a travessia completa.`:`Reduzir de ${f0(v)} para ${f0(vE)} km/h e continuar monitorando o pedestre.`;break;}
+  case 'sinal':{const L=ev.obj,ls=lightState(L,S.t),d=L.x-7-e.x;obs=`Semáforo ${ls.toUpperCase()} a ${f0(d)} m (câmeras frontal tele e grande-angular); linha de retenção e faixa de pedestres visíveis.`;
+    cause=ls==='amarelo'?`Há distância suficiente para parar com conforto (seriam necessários ~${f0(e.v*e.v/6)} m).`:`O sinal vermelho exige parada antes da linha de retenção; deve abrir em ~${f0(lightRemain(L,S.t))} s.`;
+    dec=e.v<1?`Permanecer parado na linha de retenção da faixa ${lane}.`:`Desacelerar suavemente de ${f0(v)} km/h e parar na linha (pico ${brake} m/s²), mantendo a faixa ${lane}.`;break;}
+  case 'veiculo':{const c=ev.obj;obs=`Veículo${c.truck?' pesado':''} à frente na faixa ${LANE_NAMES[nearestLane(c.y)]} a ${f0(ev.gap)} m, ${c.v<0.5?'parado':'a '+f0(kmh(c.v))+' km/h'}${c.a<-1?' e desacelerando':''}.`;
+    cause=`Para manter o intervalo de segurança de ~${f1(Pp.T)} s preciso ajustar minha velocidade.${Pp.overtake?'':' O perfil desta frota não permite ultrapassagem.'}`;
+    dec=`Ajustar de ${f0(v)} para ${f0(vE)} km/h e seguir atrás dele com folga.`;break;}
+  case 'freada':{const c=ev.obj,cl=Math.max(0.1,e.v-c.v);obs=`O veículo à frente freou bruscamente (luzes de freio acesas, ~6 m/s²) a ${f0(ev.gap)} m.`;
+    cause=`A distância está caindo rápido: sem reação, colisão traseira em ~${f1(ev.gap/cl)} s.`;
+    dec=`Frear firme (pico ${brake} m/s²) sem trocar de faixa, porque desviar agora seria mais arriscado. Velocidade final prevista: ${f0(vE)} km/h.`;break;}
+  case 'cutin':{const c=ev.obj;obs=`Veículo da faixa da ${c.y>e.y?'esquerda':'direita'} está entrando na minha frente a ${f0(Math.max(0,ev.gap))} m. Visto por: ${camsFor(c.x,c.y)}.`;
+    cause=`O espaço à frente vai ficar menor que o intervalo de segurança de ${f1(Pp.T)} s.`;
+    dec=`Aliviar o acelerador e frear (pico ${brake} m/s²) para reabrir a distância; manter a faixa ${lane} (${f0(v)} → ${f0(vE)} km/h).`;break;}
+  case 'obra':{const z=ev.obj;obs=`Cones de obra bloqueando a faixa ${LANE_NAMES[z.lane]} a ${f0(z.x0-e.x)} m.`;
+    cause=`A faixa está interditada; a faixa ${LANE_NAMES[ev.to]} está livre (conferido pelas câmeras laterais e traseiras).`;
+    dec=`Sinalizar e mudar para a faixa ${LANE_NAMES[ev.to]} em ~3 s, mantendo ~${f0(vE)} km/h.`;break;}
+  case 'obra-espera':{const z=ev.obj;obs=`Cones de obra bloqueando a faixa ${LANE_NAMES[z.lane]} a ${f0(z.x0-e.x)} m.`;
+    cause=`As faixas adjacentes estão ocupadas e não há brecha segura agora.`;dec=`Reduzir para ${f0(vE)} km/h e aguardar uma brecha; se for preciso, parar antes dos cones.`;break;}
+  case 'nav':{obs=`Instrução de navegação: "${NAV_TXT[CFG.nav]}". Estou na faixa ${LANE_NAMES[ev.from]}.`;
+    cause=`Há brecha segura na faixa ${LANE_NAMES[ev.to]} (nenhum veículo entre −${Pp.gapR} m e +${Pp.gapF} m).`;dec=`Mudar suavemente para a faixa ${LANE_NAMES[ev.to]} mantendo ~${f0(vE)} km/h.`;break;}
+  case 'nav-espera':{const b=ev.blocker;obs=`Instrução de navegação: "${NAV_TXT[CFG.nav]}", mas estou na faixa ${LANE_NAMES[ev.from]}.`;
+    cause=b?`Há um veículo na faixa ${LANE_NAMES[ev.to]} ${b.d>=0?'a '+f0(b.d)+' m à frente':'a '+f0(-b.d)+' m atrás'}; a brecha é insuficiente.`:`A brecha na faixa ${LANE_NAMES[ev.to]} é insuficiente.`;
+    dec=`Manter faixa e velocidade (${f0(vE)} km/h) e tentar de novo quando abrir espaço.`;break;}
+  case 'ultrapassagem':{const c=ev.obj;obs=`Veículo lento (${f0(kmh(c.v))} km/h) à frente a ${f0(c.x-e.x)} m na faixa ${LANE_NAMES[ev.from]}.`;
+    cause=`A faixa ${LANE_NAMES[ev.to]} está livre e não há semáforo fechado próximo; ultrapassar é seguro e reduz o tempo de viagem.`;dec=`Mudar para a faixa ${LANE_NAMES[ev.to]} e acelerar até ~${f0(vE)} km/h.`;break;}
+  case 'verde':{obs=`O semáforo ficou verde e a faixa de pedestres está livre.`;cause=`Não há mais motivo para ficar parado; o veículo à frente (se houver) também está andando.`;dec=`Retomar a marcha acelerando suavemente até ~${f0(vE)} km/h.`;break;}
+  case 'amarelo-passa':{const L=ev.obj,d=L.x-7-e.x;obs=`O semáforo ficou amarelo a ${f0(d)} m.`;cause=`Para parar eu precisaria de ~${f0(e.v*e.v/6)} m, o que exigiria uma frenagem brusca; é mais seguro atravessar.`;dec=`Manter ${f0(v)} km/h e cruzar o cruzamento.`;break;}
+  default:{obs=`Pista livre na faixa ${lane}, sem agentes relevantes no meu corredor.`;cause=`Situação rotineira.`;dec=`Manter ~${f0(vE)} km/h e a faixa ${lane}.`;}
+  }
+  return {title:TYPE_LABEL[ev.type]||ev.type,text:`Observação: ${obs}\nCausa: ${cause}${wx}\nDecisão: ${dec}`,traj:`Trajetória: 64 waypoints (0,1–6,4 s) · ${f0(v)} → ${f0(vE)} km/h · desaceleração máx. ${brake} m/s² · percorre ${f0(tr.dist)} m`};
+}
+function showReasoning(r,ev){
+  S.typing={full:r.text+'\n\n'+r.traj,n:0};
+  $('reasonTitle').textContent=r.title;
+  const score=clamp(0.8+Math.random()*0.17,0,0.99);
+  const rare=['cutin','freada','pedestre','obra-espera'].includes(ev.type);
+  const sel=rare&&score>0.86;if(sel)S.inf.selected++;
+  $('judgeS').textContent=f2(score)+' · coerência causa→ação, aderência à trajetória';
+  $('judgeBar').style.width=(score*100)+'%';
+  $('judgeSel').textContent=sel?'✔ selecionado como exemplo de treino':'';
+  const log=$('log');if(log.firstChild&&log.firstChild.classList&&log.firstChild.classList.contains('mut'))log.innerHTML='';
+  const d=document.createElement('div');d.innerHTML=`<span class="t">${f1(S.t)} s</span><span>${r.title}</span><span class="s">${f2(score)}${sel?' ✔':''}</span>`;
+  log.prepend(d);while(log.children.length>14)log.lastChild.remove();
+}
+
+/* ---------- eventos ---------- */
+let toastT;function toast(m,bad){const t=$('toast');t.textContent=m;t.className='toast show'+(bad?' bad':'');clearTimeout(toastT);toastT=setTimeout(()=>t.className='toast',2200);}
+const EVENTS={
+  ped(){const e=S.ego,x=e.x+Math.max(32,e.v*3.4+12),side=Math.random()<0.5?1:-1;S.peds.push({id:S.nextId++,x,y:9.2*side,vy:-side*rnd(1.3,1.7),jay:true,col:'#ff7ad9'});toast('Pedestre vai atravessar fora da faixa');},
+  cut(){const e=S.ego,cl=nearestLane(e.y),adj=[cl-1,cl+1].filter(l=>l>=0&&l<3),l=adj[Math.floor(Math.random()*adj.length)];
+    if(e.v<6){toast('Velocidade baixa demais para simular corte de faixa');return;}let c=S.cars.find(c=>Math.abs(c.y-LANES[l])<1&&c.x-e.x>14&&c.x-e.x<30&&c.ty==null&&c.v>e.v*0.85);
+    if(!c){S.cars=S.cars.filter(o=>!(Math.abs(o.y-LANES[l])<2.4&&Math.abs(o.x-(e.x+15))<14));c=makeCar(l,e.x+16,Math.max(e.v*0.9,6));c.v=c.v0;S.cars.push(c);}c.v0=Math.max(c.v0,e.v*0.9);
+    c.ty=LANES[cl];c.lane=cl;c.cutin=true;c.cutT=S.t;toast('Veículo cortando a frente');},
+  brake(){const e=S.ego,cl=nearestLane(e.y);let L=leadIn(cl,e);let c;
+    if(!L||L.dx>60){c=makeCar(cl,e.x+Math.max(22,e.v*1.8),Math.max(e.v,8));c.v=c.v0;S.cars.push(c);}else c=L.c;
+    c.brakeUntil=S.t+2.6;toast('Carro da frente freou bruscamente');},
+  cones(){const e=S.ego,l=e.tl;if(S.cones.some(z=>z.x1>e.x-10&&z.x0-e.x<250)){toast('Já existe uma obra à frente');return;}const x0=e.x+Math.max(85,e.v*5.5);S.cones.push({id:S.nextId++,lane:l,x0,x1:x0+70});S.cars=S.cars.filter(c=>!(Math.abs(c.y-LANES[l])<2&&c.x>x0-8&&c.x<x0+75));toast('Obra bloqueando a faixa '+LANE_NAMES[l]);}
+};
+
+/* ---------- passo da simulação ---------- */
+function updateCar(c,dt){
+  const e=S.ego;
+  if(c.ty!=null){const d=c.ty-c.y;c.y+=Math.sign(d)*Math.min(Math.abs(d),CUT_V*dt);c.hd=Math.sign(d)*0.1;if(Math.abs(c.ty-c.y)<0.02){c.y=c.ty;c.ty=null;c.cutin=false;c.hd=0;}}
+  else{const z=S.cones.find(z=>z.lane===c.lane&&z.x0-c.x>0&&z.x0-c.x<70);if(z)for(const l of [c.lane-1,c.lane+1]){if(l<0||l>2)continue;if(gapOK(l,c.x,c)){c.ty=LANES[l];c.lane=l;break;}}}
+  let a=1.5*(1-Math.pow(c.v/c.v0,4));
+  const cons=(gap,vl)=>{gap=Math.max(gap,0.2);const ss=2.5+Math.max(0,c.v*1.4+c.v*(c.v-vl)/(2*Math.sqrt(4.5)));a=Math.min(a,1.5*(1-Math.pow(c.v/c.v0,4)-Math.pow(ss/gap,2)));};
+  const inL=y=>Math.abs(y-c.y)<2.2||(c.ty!=null&&Math.abs(y-c.ty)<2.2);
+  for(const o of S.cars){if(o===c)continue;const dx=o.x-c.x;if(dx>0&&dx<120&&inL(o.y))cons(dx-(o.len+c.len)/2,o.v);}
+  {const dx=e.x-c.x;if(dx>0&&dx<120&&inL(e.y))cons(dx-(EGO_L+c.len)/2,e.v);}
+  for(const L of S.lights){const d=L.x-7-c.x-c.len/2;if(d<-0.5||d>100)continue;const ls=lightState(L,S.t);if(ls==='vermelho'||(ls==='amarelo'&&d>c.v*c.v/6+1))cons(d+1.5,0);}
+  for(const p of S.peds){if(!pedBlocks(p,c.y,c.ty??c.y,0))continue;const dx=p.x-c.x;if(dx>0&&dx<80)cons(dx-c.len/2-2.5,0);}
+  for(const z of S.cones){if(Math.abs(LANES[z.lane]-c.y)<2.4&&z.x0>c.x)cons(z.x0-c.x-c.len/2,0);}
+  if(c.brakeUntil>S.t)a=-6;
+  a=clamp(a,-8,2);c.a=c.v<=0&&a<0?0:a;c.v=Math.max(0,c.v+a*dt);c.x+=c.v*dt;
+}
+function stepEgo(dt){
+  const e=S.ego,Pp=P();
+  const aT=longAccel(e,0,Pp,null,e.tl),kT=latCurv(e,e.tl);
+  e.a+=clamp(aT-e.a,-25*dt,8*dt);e.k=kT;
+  integrate(e,e.a,e.k,dt);if(e.v<=0&&e.a<0)e.a=0;
+  S.dist+=e.v*dt;
+}
+function step(){
+  S.t+=DT;S.step++;
+  for(const L of S.lights){const cyc=Math.floor((S.t+L.off)/CYCLE);if(lightState(L,S.t)==='vermelho'&&L.lastCyc!==cyc){L.lastCyc=cyc;if(L.x-S.ego.x<240&&L.x>S.ego.x-10&&Math.random()<0.75){const n=Math.random()<0.4?2:1;for(let i=0;i<n;i++){const side=Math.random()<0.5?1:-1;S.peds.push({id:S.nextId++,x:L.x-4+rnd(-1,1),y:side*(9.4+i*1.1),vy:-side*rnd(1.2,1.6),jay:false,col:['#ffd166','#06d6a0','#ef476f','#9b5de5'][Math.floor(Math.random()*4)]});}}}}
+  for(const c of S.cars)updateCar(c,DT);
+  for(const p of S.peds)p.y+=p.vy*DT;
+  stepEgo(DT);
+  if(S.step%2===0){S.hist.push({x:S.ego.x,y:S.ego.y});if(S.hist.length>20)S.hist.shift();infer();}
+  if(S.step%4===0){S.chart.push({t:S.t,v:kmh(S.ego.v),a:S.ego.a,r:S.lastReasoned});if(S.chart.length>150)S.chart.shift();}
+  const e=S.ego;
+  for(const c of S.cars){if(c.x>e.x&&!(S.t-(c.cutT??-99)<6)&&Math.abs(c.x-e.x)<(c.len+EGO_L)/2-0.3&&Math.abs(c.y-e.y)<(c.w+EGO_W)/2-0.15){if(!S.colliding.has(c.id)){S.colliding.add(c.id);S.incidents++;toast('Incidente: contato com veículo',true);}}else S.colliding.delete(c.id);}
+  for(const p of S.peds){if(e.v>1&&Math.abs(p.x-e.x)<2.4&&Math.abs(p.y-e.y)<1.2&&!p.hit){p.hit=true;S.incidents++;toast('Incidente: pedestre',true);}}
+  ensureWorld(false);
+  if(CFG.auto&&S.t>S.nextAuto){const k=S.ego.v<6?['ped','cones']:['ped','cut','brake','cones','ped','cut'];EVENTS[k[Math.floor(Math.random()*k.length)]]();S.nextAuto=S.t+rnd(16,30);}
+}
+
+/* ---------- renderização: câmeras ---------- */
+const camEls=[];
+function buildCams(){
+  const box=$('cams');
+  for(const c of CAMS){const d=document.createElement('div');d.className='cam';const cv=document.createElement('canvas');cv.width=384;cv.height=216;d.appendChild(cv);
+    const l=document.createElement('div');l.className='lbl';l.textContent=`CAM ${c.id} · ${c.name}`;d.appendChild(l);
+    const fr=document.createElement('div');fr.className='frames';const times=c.frames===5?['−2','−1','−0,5','−0,1','0']:['−1','−0,1','0'];
+    fr.innerHTML=times.map(t=>`<i title="${t} s"></i>`).join('')+` <span>${c.frames} quadros</span>`;d.appendChild(fr);
+    box.appendChild(d);camEls.push({cam:c,cv,dots:fr.querySelectorAll('i')});}
+}
+function drawCam(cv,cam){
+  const ctx=cv.getContext('2d'),W=cv.width,H=cv.height,e=S.ego;
+  const yaw=e.h+cam.yaw*D2R,c=Math.cos(yaw),s=Math.sin(yaw),f=(W/2)/Math.tan(cam.fov*D2R/2),hor=H*0.45,ch=1.5,NEAR=0.4;
+  const night=CFG.weather==='noite',rain=CFG.weather==='chuva',front=Math.cos(cam.yaw*D2R)>0.5;
+  let g=ctx.createLinearGradient(0,0,0,hor);
+  if(night){g.addColorStop(0,'#03050a');g.addColorStop(1,'#141c2e');}else if(rain){g.addColorStop(0,'#525b66');g.addColorStop(1,'#8b939c');}else{g.addColorStop(0,'#3b78cf');g.addColorStop(1,'#b5d5f2');}
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,hor);
+  ctx.fillStyle=night?'#0b100b':rain?'#38473a':'#4d7838';ctx.fillRect(0,hor,W,H-hor);
+  const toC=(wx,wy,z)=>{const dx=wx-e.x,dy=wy-e.y;return [dx*c+dy*s,-dx*s+dy*c,z||0];};
+  const pr=p=>[W/2-p[1]/p[0]*f,hor+f*(ch-p[2])/p[0]];
+  const clip=poly=>{const out=[];for(let i=0;i<poly.length;i++){const a=poly[i],b=poly[(i+1)%poly.length],ai=a[0]>=NEAR,bi=b[0]>=NEAR;if(ai)out.push(a);if(ai!==bi){const t=(NEAR-a[0])/(b[0]-a[0]);out.push([NEAR,a[1]+t*(b[1]-a[1]),a[2]+t*(b[2]-a[2])]);}}return out;};
+  const poly=(pts,col)=>{const q=clip(pts.map(p=>toC(p[0],p[1],p[2])));if(q.length<3)return;ctx.fillStyle=col;ctx.beginPath();q.forEach((p,i)=>{const r=pr(p);i?ctx.lineTo(r[0],r[1]):ctx.moveTo(r[0],r[1]);});ctx.closePath();ctx.fill();};
+  const x0=e.x-160,x1=e.x+260;
+  poly([[x0,9.5],[x1,9.5],[x1,6.3],[x0,6.3]],night?'#2a2d2a':'#8d9089');
+  poly([[x0,-6.3],[x1,-6.3],[x1,-9.5],[x0,-9.5]],night?'#2a2d2a':'#8d9089');
+  poly([[x0,6.3],[x1,6.3],[x1,-6.3],[x0,-6.3]],night?'#17191c':rain?'#363a3f':'#54585d');
+  const mk=night?'#9a9a8a':'#eeeeee';
+  for(const y of [5.25,-5.25])poly([[x0,y+0.08],[x1,y+0.08],[x1,y-0.08],[x0,y-0.08]],mk);
+  for(const y of [1.75,-1.75])for(let x=Math.floor(x0/9)*9;x<x1;x+=9)poly([[x,y+0.07],[x+4.5,y+0.07],[x+4.5,y-0.07],[x,y-0.07]],mk);
+  for(const L of S.lights){if(Math.abs(L.x-e.x)>240)continue;poly([[L.x-7.5,5.25],[L.x-7,5.25],[L.x-7,-5.25],[L.x-7.5,-5.25]],mk);
+    for(let y=-5;y<5.2;y+=1.25)poly([[L.x-6,y+0.32],[L.x-2,y+0.32],[L.x-2,y-0.32],[L.x-6,y-0.32]],mk);}
+  for(const z of S.cones){const y=LANES[z.lane];poly([[z.x0,y+1.7],[z.x1,y+1.7],[z.x1,y-1.7],[z.x0,y-1.7]],'rgba(255,140,0,.18)');}
+  if(front&&S.traj.length){const L=[],R=[];for(const p of S.traj){const sx=-Math.sin(p.h)*0.95,sy=Math.cos(p.h)*0.95;L.push([p.x+sx,p.y+sy]);R.push([p.x-sx,p.y-sy]);}
+    const st=[e.x,e.y];poly([[st[0],st[1]+0.95],...L,...R.reverse(),[st[0],st[1]-0.95]],S.lastReasoned?'rgba(255,204,51,.30)':'rgba(118,185,0,.32)');}
+  // objetos
+  const objs=[];
+  for(const o of S.cars)objs.push({x:o.x,y:o.y,len:o.len,w:o.w,h:o.ht,col:o.color,kind:'car',o});
+  for(const p of S.peds)objs.push({x:p.x,y:p.y,len:0.4,w:0.5,h:1.75,col:p.col,kind:'ped',o:p});
+  for(const z of S.cones)for(let x=z.x0;x<=z.x1;x+=5)objs.push({x,y:LANES[z.lane]+(((x-z.x0)/5)%2?0.6:-0.6),len:0.4,w:0.4,h:0.75,col:'#ff8c00',kind:'cone'});
+  for(const L of S.lights)objs.push({x:L.x-7,y:-6.8,len:0.3,w:0.3,h:5,col:'#333',kind:'pole',o:L});
+  const vis=[];
+  for(const ob of objs){const corners=[];for(const dx of [-ob.len/2,ob.len/2])for(const dy of [-ob.w/2,ob.w/2])for(const z of [0,ob.h])corners.push(toC(ob.x+dx,ob.y+dy,z));
+    if(corners.some(p=>p[0]<NEAR))continue;const ps=corners.map(pr);let u0=1e9,u1=-1e9,v0=1e9,v1=-1e9;for(const p of ps){u0=Math.min(u0,p[0]);u1=Math.max(u1,p[0]);v0=Math.min(v0,p[1]);v1=Math.max(v1,p[1]);}
+    if(u1<0||u0>W)continue;const d=toC(ob.x,ob.y,0)[0];vis.push({ob,u0,u1,v0,v1,d});}
+  vis.sort((a,b)=>b.d-a.d);
+  const cause=S.curEvent&&S.curEvent.obj;
+  for(const it of vis){const {ob,u0,u1,v0,v1}=it,w=u1-u0,h=v1-v0;
+    if(ob.kind==='car'){ctx.fillStyle=night?shade(ob.col,-0.55):ob.col;ctx.fillRect(u0,v0+h*0.35,w,h*0.65);ctx.fillStyle=night?'#0d1117':'#1e2a36';ctx.fillRect(u0+w*0.12,v0+h*(ob.o.truck?0.05:0.08),w*0.76,h*(ob.o.truck?0.3:0.3));ctx.fillStyle='#111';ctx.fillRect(u0+w*0.05,v1-h*0.08,w*0.2,h*0.08);ctx.fillRect(u1-w*0.25,v1-h*0.08,w*0.2,h*0.08);
+      const facingBack=Math.cos(cam.yaw*D2R)>0;const lc=facingBack?(ob.o.a<-1?'#ff2a2a':night?'#a01818':'#7a1a1a'):(night?'#fffbe0':'#ddd');
+      if(facingBack||night){ctx.fillStyle=lc;const r=Math.max(1.5,w*0.08);ctx.fillRect(u0+w*0.04,v0+h*0.5,r*1.6,r);ctx.fillRect(u1-w*0.04-r*1.6,v0+h*0.5,r*1.6,r);if(ob.o.a<-1&&facingBack){ctx.fillStyle='rgba(255,40,40,.25)';ctx.fillRect(u0-r,v0+h*0.4,w+2*r,h*0.3);}}}
+    else if(ob.kind==='ped'){ctx.fillStyle=ob.col;ctx.fillRect(u0+w*0.2,v0+h*0.18,w*0.6,h*0.5);ctx.fillStyle='#333';ctx.fillRect(u0+w*0.25,v0+h*0.68,w*0.5,h*0.32);ctx.fillStyle='#e0b48a';ctx.beginPath();ctx.arc((u0+u1)/2,v0+h*0.09,Math.max(1,w*0.28),0,7);ctx.fill();}
+    else if(ob.kind==='cone'){ctx.fillStyle='#ff8c00';ctx.beginPath();ctx.moveTo((u0+u1)/2,v0);ctx.lineTo(u1,v1);ctx.lineTo(u0,v1);ctx.fill();ctx.fillStyle='#fff';ctx.fillRect(u0+w*0.3,v0+h*0.45,w*0.4,h*0.12);}
+    else if(ob.kind==='pole'){ctx.fillStyle='#2b2b2b';ctx.fillRect(u0,v0,Math.max(1,w),h);
+      const L=ob.o,ls=lightState(L,S.t);for(const y of LANES){const p=toC(L.x-7,y,4.6);if(p[0]<NEAR)continue;const r=pr(p),sz=Math.max(2,0.45*f/p[0]);ctx.fillStyle='#111';ctx.fillRect(r[0]-sz*0.5,r[1]-sz*1.5,sz,sz*3);ctx.fillStyle=ls==='verde'?'#2bff6a':ls==='amarelo'?'#ffcc33':'#ff3030';const yy=ls==='verde'?1:ls==='amarelo'?0:-1;ctx.beginPath();ctx.arc(r[0],r[1]+yy*sz*0.95,sz*0.4,0,7);ctx.fill();}
+      const a=toC(L.x-7,-6.8,5),b=toC(L.x-7,6,5);if(a[0]>NEAR&&b[0]>NEAR){const A=pr(a),B=pr(b);ctx.strokeStyle='#2b2b2b';ctx.lineWidth=Math.max(1,0.25*f/a[0]);ctx.beginPath();ctx.moveTo(A[0],A[1]);ctx.lineTo(B[0],B[1]);ctx.stroke();}}
+    if(cam.id===1||cam.id===6||cam.id===0||cam.id===2){if((ob.kind==='car'||ob.kind==='ped')&&it.d<(cam.id===6?200:70)){const isC=cause===ob.o;ctx.strokeStyle=isC?'#ffcc33':'rgba(118,185,0,.85)';ctx.lineWidth=isC?2:1;ctx.strokeRect(u0-1,v0-1,w+2,h+2);
+      if(w>14||isC){ctx.font='10px system-ui';ctx.fillStyle=isC?'#ffcc33':'#b8e36a';ctx.fillText(`${ob.kind==='ped'?'pedestre':ob.o.truck?'caminhão':'carro'} ${f0(it.d)}m`,u0,v0-3);}}}
+  }
+  if(rain){ctx.strokeStyle='rgba(200,210,230,.35)';ctx.lineWidth=1;ctx.beginPath();for(let i=0;i<45;i++){const x=Math.random()*W,y=Math.random()*H;ctx.moveTo(x,y);ctx.lineTo(x-3,y+10);}ctx.stroke();}
+  if(night){const gr=ctx.createRadialGradient(W/2,H,10,W/2,H,H*0.9);gr.addColorStop(0,'rgba(0,0,0,0)');gr.addColorStop(1,'rgba(0,0,0,.45)');ctx.fillStyle=gr;ctx.fillRect(0,0,W,H);}
+  if(front&&cam.id===1){ctx.fillStyle='#0a0c0f';ctx.beginPath();ctx.moveTo(0,H);ctx.quadraticCurveTo(W*0.5,H*0.8,W,H);ctx.fill();}
+  ctx.font='10px ui-monospace,monospace';ctx.fillStyle='rgba(255,255,255,.75)';ctx.fillText('t='+f1(S.t)+'s',W-62,14);
+}
+function shade(hex,p){const n=parseInt(hex.slice(1),16);let r=n>>16,g=(n>>8)&255,b=n&255;const k=1+p;r=clamp(Math.round(r*k),0,255);g=clamp(Math.round(g*k),0,255);b=clamp(Math.round(b*k),0,255);return `rgb(${r},${g},${b})`;}
+
+/* ---------- renderização: visão de cima ---------- */
+function drawBEV(){
+  const cv=$('bev'),ctx=cv.getContext('2d'),W=cv.width,H=cv.height,e=S.ego,sc=7,ox=W*0.18;
+  const X=wx=>ox+(wx-e.x)*sc,Y=wy=>H/2-wy*sc,night=CFG.weather==='noite';
+  ctx.fillStyle=night?'#0b120b':'#1a2b19';ctx.fillRect(0,0,W,H);
+  ctx.fillStyle=night?'#262826':'#5f625c';ctx.fillRect(0,Y(9.5),W,(9.5-6.3)*sc);ctx.fillRect(0,Y(-6.3),W,(9.5-6.3)*sc);
+  ctx.fillStyle=night?'#17191c':'#3a3d41';ctx.fillRect(0,Y(6.3),W,12.6*sc);
+  const xL=e.x-ox/sc-5,xR=e.x+(W-ox)/sc+5;
+  ctx.fillStyle='#ddd';for(const y of [5.25,-5.25])ctx.fillRect(0,Y(y)-1,W,2);
+  for(const y of [1.75,-1.75])for(let x=Math.floor(xL/9)*9;x<xR;x+=9)ctx.fillRect(X(x),Y(y)-1,4.5*sc,2);
+  if(CFG.fov){for(const c of CAMS){const r=(c.id===6?60:28)*sc;const a0=-(e.h+(c.yaw+c.fov/2)*D2R),a1=-(e.h+(c.yaw-c.fov/2)*D2R);ctx.fillStyle=c.id===6?'rgba(77,184,255,.10)':'rgba(118,185,0,.09)';ctx.beginPath();ctx.moveTo(X(e.x),Y(e.y));ctx.arc(X(e.x),Y(e.y),r,a0,a1);ctx.closePath();ctx.fill();}}
+  for(const L of S.lights){if(L.x<xL||L.x>xR+10)continue;ctx.fillStyle='#eee';ctx.fillRect(X(L.x-7.5),Y(5.25),0.5*sc,10.5*sc);
+    for(let y=-5;y<5.2;y+=1.25)ctx.fillRect(X(L.x-6),Y(y+0.32),4*sc,0.64*sc);
+    const ls=lightState(L,S.t);ctx.fillStyle='#111';ctx.fillRect(X(L.x-7)-9,Y(-6.8)-9,18,18);ctx.fillStyle=ls==='verde'?'#2bff6a':ls==='amarelo'?'#ffcc33':'#ff3030';ctx.beginPath();ctx.arc(X(L.x-7),Y(-6.8),6,0,7);ctx.fill();
+    ctx.fillStyle='#ccc';ctx.font='11px system-ui';ctx.fillText(f0(lightRemain(L,S.t))+'s',X(L.x-7)+12,Y(-6.8)+4);}
+  for(const z of S.cones){const y=LANES[z.lane];ctx.fillStyle='rgba(255,140,0,.22)';ctx.fillRect(X(z.x0),Y(y+1.75),(z.x1-z.x0)*sc,3.5*sc);ctx.fillStyle='#ff8c00';for(let x=z.x0;x<=z.x1;x+=5){ctx.beginPath();ctx.moveTo(X(x),Y(y+(((x-z.x0)/5)%2?0.6:-0.6))-5);ctx.lineTo(X(x)+4,Y(y+(((x-z.x0)/5)%2?0.6:-0.6))+4);ctx.lineTo(X(x)-4,Y(y+(((x-z.x0)/5)%2?0.6:-0.6))+4);ctx.fill();}}
+  ctx.fillStyle='rgba(200,200,200,.55)';for(const p of S.hist){ctx.beginPath();ctx.arc(X(p.x),Y(p.y),2,0,7);ctx.fill();}
+  ctx.setLineDash([5,5]);ctx.lineWidth=1.5;for(const t of S.cands){ctx.strokeStyle='rgba(77,184,255,.6)';ctx.beginPath();ctx.moveTo(X(e.x),Y(e.y));for(const p of t)ctx.lineTo(X(p.x),Y(p.y));ctx.stroke();}ctx.setLineDash([]);
+  if(S.traj.length){const col=S.lastReasoned?'#ffcc33':'#76b900';ctx.strokeStyle=col;ctx.lineWidth=EGO_W*sc*0.55;ctx.globalAlpha=0.35;ctx.beginPath();ctx.moveTo(X(e.x),Y(e.y));for(const p of S.traj)ctx.lineTo(X(p.x),Y(p.y));ctx.stroke();ctx.globalAlpha=1;
+    ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(X(e.x),Y(e.y));for(const p of S.traj)ctx.lineTo(X(p.x),Y(p.y));ctx.stroke();
+    ctx.fillStyle=col;S.traj.forEach((p,i)=>{if((i+1)%10===0){ctx.beginPath();ctx.arc(X(p.x),Y(p.y),3.5,0,7);ctx.fill();ctx.font='10px system-ui';ctx.fillText(((i+1)/10)+'s',X(p.x)-6,Y(p.y)-7);}});}
+  const cause=S.curEvent&&S.curEvent.obj;
+  const box=(x,y,l,w,h,col,stroke)=>{ctx.save();ctx.translate(X(x),Y(y));ctx.rotate(-h);ctx.fillStyle=col;ctx.fillRect(-l*sc/2,-w*sc/2,l*sc,w*sc);if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=2;ctx.strokeRect(-l*sc/2-3,-w*sc/2-3,l*sc+6,w*sc+6);}ctx.restore();};
+  for(const c of S.cars){if(c.x<xL-10||c.x>xR+10)continue;const isC=cause===c;box(c.x,c.y,c.len,c.w,c.hd,c.color,isC?'#ffcc33':null);
+    ctx.fillStyle='rgba(0,0,0,.35)';ctx.save();ctx.translate(X(c.x),Y(c.y));ctx.rotate(-c.hd);ctx.fillRect(-c.len*sc*0.1,-c.w*sc*0.4,c.len*sc*0.3,c.w*sc*0.8);if(c.a<-1){ctx.fillStyle='#ff3030';ctx.fillRect(-c.len*sc/2-2,-c.w*sc/2,3,c.w*sc);}if(c.cutin){ctx.fillStyle='#ffb000';ctx.fillRect(c.len*sc/2-4,(c.ty>c.y?-1:1)*c.w*sc/2-2,5,4);}ctx.restore();}
+  for(const p of S.peds){ctx.fillStyle=p.col;ctx.beginPath();ctx.arc(X(p.x),Y(p.y),4.5,0,7);ctx.fill();if(cause===p){ctx.strokeStyle='#ffcc33';ctx.lineWidth=2;ctx.beginPath();ctx.arc(X(p.x),Y(p.y),9,0,7);ctx.stroke();}}
+  if(cause&&cause.x!=null){const cx=cause.x0!=null?cause.x0:cause.x,cy=cause.lane!=null&&cause.x0!=null?LANES[cause.lane]:cause.y!=null?cause.y:0;ctx.strokeStyle='rgba(255,204,51,.6)';ctx.setLineDash([3,4]);ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(X(e.x),Y(e.y));ctx.lineTo(X(cause.x0!=null?cx:cause.y==null?cx-7:cx),Y(cause.y==null&&cause.x0==null?-6.8:cy));ctx.stroke();ctx.setLineDash([]);}
+  box(e.x,e.y,EGO_L,EGO_W,e.h,'#76b900','#d6ff8a');
+  ctx.fillStyle='#0a0e0b';ctx.font='bold 9px system-ui';ctx.save();ctx.translate(X(e.x),Y(e.y));ctx.rotate(-e.h);ctx.fillText('EGO',-9,3);ctx.restore();
+  ctx.fillStyle='rgba(0,0,0,.55)';ctx.fillRect(8,8,300,40);ctx.fillStyle='#e6efe8';ctx.font='12px system-ui';
+  ctx.fillText(`${f0(kmh(e.v))} km/h · faixa alvo: ${LANE_NAMES[e.tl]} · ${PROFILES[CFG.profile]===PROFILES.padrao?'Frota B':CFG.profile==='conservador'?'Frota A':'Frota C'}`,16,24);
+  ctx.fillStyle='#b8e36a';ctx.fillText(`Navegação: "${NAV_TXT[CFG.nav]}"`,16,41);
+  ctx.fillStyle='rgba(0,0,0,.55)';ctx.fillRect(W-250,8,242,22);ctx.font='11px system-ui';ctx.fillStyle='#76b900';ctx.fillText('━ trajetória escolhida',W-244,23);ctx.fillStyle='#4db8ff';ctx.fillText('┅ candidatas',W-118,23);ctx.fillStyle='#ccc';ctx.fillText('• poses',W-52,23);
+}
+
+function drawChart(){
+  const cv=$('chart'),ctx=cv.getContext('2d'),W=cv.width,H=cv.height;ctx.fillStyle='#0c120e';ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='#1d2a21';ctx.lineWidth=1;ctx.font='10px system-ui';ctx.fillStyle='#667a6e';
+  for(const v of [0,30,60,90]){const y=H-12-(v/90)*(H-24);ctx.beginPath();ctx.moveTo(30,y);ctx.lineTo(W,y);ctx.stroke();ctx.fillText(v+'',4,y+3);}
+  const d=S.chart;if(d.length<2)return;const t1=S.t,t0=t1-30,X=t=>30+(t-t0)/30*(W-30);
+  for(const p of d)if(p.r){ctx.fillStyle='rgba(255,204,51,.6)';ctx.fillRect(X(p.t)-1,H-10,3,10);}
+  ctx.strokeStyle='#76b900';ctx.lineWidth=2;ctx.beginPath();d.forEach((p,i)=>{const y=H-12-(p.v/90)*(H-24);i?ctx.lineTo(X(p.t),y):ctx.moveTo(X(p.t),y);});ctx.stroke();
+  ctx.strokeStyle='#4db8ff';ctx.lineWidth=1.5;ctx.beginPath();d.forEach((p,i)=>{const y=H/2-(p.a/8)*(H/2-12);i?ctx.lineTo(X(p.t),y):ctx.moveTo(X(p.t),y);});ctx.stroke();
+  ctx.fillStyle='#76b900';ctx.fillText('km/h',W-36,12);ctx.fillStyle='#4db8ff';ctx.fillText('m/s² (±8)',W-100,12);
+}
+
+function updatePanels(){
+  const e=S.ego,I=S.inf;
+  $('sV').innerHTML=f0(kmh(e.v))+' <small>km/h</small>';$('sA').innerHTML=f1(e.a)+' <small>m/s²</small>';$('sK').innerHTML=(e.k).toFixed(3)+' <small>1/m</small>';
+  $('sD').innerHTML=f2(S.dist/1000)+' <small>km</small>';$('sI').textContent=f0(I.count);
+  $('sC').innerHTML=S.incidents+(S.incidents?` <small>${f1(S.dist/1000/S.incidents)} km/inc.</small>`:'');
+  $('dTotal').textContent=big(I.data);$('dInf').textContent=big(VALUES_PER_INF);$('dSec').textContent=big(VALUES_PER_INF*10);
+  $('dTok').textContent=f0(I.tokens);$('dRea').textContent=f0(I.reasoned);
+  $('dEco').textContent=I.count?f0(100*(1-I.reasoned/I.count))+'%':'—';$('dSel').textContent=f0(I.selected);
+  const pct=Math.min(100,I.data/ORACLE_REF*100);$('dBar').style.width=pct+'%';
+  $('dRef').textContent=I.data<ORACLE_REF?`${f1(pct)}% da referência de 8 bi de pontos de dados por corrida de F1 (Oracle Red Bull Racing): o carro chega lá em ~${f0(ORACLE_REF/(VALUES_PER_INF*10))} s de direção.`:`Já passou de 1 "corrida de F1" de dados (${f1(I.data/ORACLE_REF)}× a referência de 8 bi).`;
+  for(const ce of camEls){const n=ce.dots.length;ce.dots.forEach((d,i)=>d.classList.toggle('on',i===S.frameTick%n));}
+}
+
+/* ---------- perguntas livres ---------- */
+function ask(q){
+  const e=S.ego,cl=nearestLane(e.y);let Q,A;
+  if(q==='ver'){Q='O que você está vendo?';const ah=S.cars.filter(c=>c.x>e.x&&c.x-e.x<80),bh=S.cars.filter(c=>c.x<=e.x&&e.x-c.x<50);const peds=S.peds.filter(p=>Math.abs(p.y)<9.8&&Math.abs(p.x-e.x)<80);
+    const L=S.lights.find(L=>L.x-7-e.x>0);const z=S.cones.find(z=>z.x1>e.x&&z.x0-e.x<150);
+    A=`Estou na faixa ${LANE_NAMES[cl]} a ${f0(kmh(e.v))} km/h. Vejo ${ah.length} veículo(s) à frente em até 80 m${ah.length?` (o mais próximo a ${f0(Math.min(...ah.map(c=>c.x-e.x)))} m)`:''} e ${bh.length} atrás. `+
+      (peds.length?`Há ${peds.length} pedestre(s) perto da pista. `:'Nenhum pedestre na pista. ')+(L?`Próximo semáforo: ${lightState(L,S.t)} a ${f0(L.x-7-e.x)} m. `:'')+(z?`Obra na faixa ${LANE_NAMES[z.lane]} a ${f0(Math.max(0,z.x0-e.x))} m. `:'')+(CFG.weather!=='dia'?`Condição: ${CFG.weather}.`:'');}
+  else if(q==='porque'){Q='Por que está fazendo isso?';const ev=S.curEvent;if(!ev||ev.type==='livre')A=`A situação é rotineira: pista livre, então mantenho ~${f0(kmh(e.v))} km/h na faixa ${LANE_NAMES[cl]}. Nesse modo nem gero texto de raciocínio, para economizar processamento.`;else{const r=buildReasoning(ev,trajStats(S.traj),P());A=r.text.split('\n').slice(1).join('\n');}}
+  else if(q==='risco'){Q='Qual o maior risco agora?';let best=null;
+    for(const c of S.cars){if(Math.abs(c.y-e.y)>2.6&&!(c.ty!=null&&Math.abs(c.ty-e.y)<1))continue;const dx=c.x-e.x-(c.len+EGO_L)/2;if(dx<0)continue;const cl2=e.v-c.v;const ttc=cl2>0.1?dx/cl2:Infinity;if(!best||ttc<best.ttc)best={ttc,txt:`${c.cutin?'Veículo entrando na minha faixa':c.brakeUntil>S.t?'Veículo à frente freando forte':'Veículo à frente'} a ${f0(dx)} m`};}
+    for(const p of S.peds){if(!pedBlocks(p,e.y,e.y,0))continue;const dx=p.x-e.x;if(dx<0)continue;const ttc=dx/Math.max(e.v,0.1);if(!best||ttc<best.ttc)best={ttc,txt:`Pedestre na via a ${f0(dx)} m`};}
+    A=best?`${best.txt}. ${isFinite(best.ttc)?`Tempo até colisão se eu não reagir: ~${f1(best.ttc)} s. Já estou ajustando a velocidade.`:'Não estamos nos aproximando; risco baixo.'}`:'Nenhum agente em rota de conflito agora. O maior risco é algo surgir de repente nas laterais, por isso monitoro as câmeras laterais o tempo todo.';}
+  else{Q='Posso ir para a esquerda?';const l=cl-1;if(l<0)A='Já estou na faixa mais à esquerda.';else if(laneFreeEgo(l,P()))A=`Sim: a faixa ${LANE_NAMES[l]} tem brecha segura (sem veículos entre −${P().gapR} m e +${P().gapF} m, sem obras). Para mudar, selecione "Mantenha-se na faixa da esquerda" na navegação.`;else{const b=blockerIn(l);A=`Agora não: ${b?`há um veículo na faixa ${LANE_NAMES[l]} ${b.d>=0?'a '+f0(b.d)+' m à frente':'a '+f0(-b.d)+' m atrás'}`:'há obra na faixa'}; a brecha é insuficiente.`;}}
+  S.inf.tokens+=Math.round(A.length/3.6);
+  $('vqaA').classList.remove('mut');$('vqaA').textContent=`P: ${Q}\nR: ${A}`;
+}
+
+/* ---------- loop e UI ---------- */
+let last=performance.now(),acc=0,lastPanel=0;
+function frame(now){
+  const dt=Math.min(0.1,(now-last)/1000);last=now;
+  if(!CFG.paused){acc+=dt*CFG.speed;let n=0;while(acc>=DT&&n<60){step();acc-=DT;n++;}if(n>=60)acc=0;}
+  for(const ce of camEls)drawCam(ce.cv,ce.cam);
+  drawBEV();drawChart();
+  if(S.typing){const T=S.typing;if(T.n<T.full.length){T.n=Math.min(T.full.length,T.n+Math.max(2,Math.round(3*CFG.speed)));$('reasonText').innerHTML=esc(T.full.slice(0,T.n))+'<span class="caret"></span>';}else if(!T.done){T.done=true;$('reasonText').textContent=T.full;}}
+  if(now-lastPanel>120){updatePanels();lastPanel=now;}
+  requestAnimationFrame(frame);
+}
+const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+function segBind(id,key,cb){document.querySelectorAll('#'+id+' button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#'+id+' button').forEach(x=>x.classList.remove('on'));b.classList.add('on');CFG[key]=isNaN(+b.dataset.v)?b.dataset.v:+b.dataset.v;cb&&cb();});}
+segBind('segSpeed','speed');segBind('segMode','mode',()=>{S.lastKey=null;});
+$('btnPause').onclick=()=>{CFG.paused=!CFG.paused;$('btnPause').textContent=CFG.paused?'▶ Continuar':'⏸ Pausar';};
+$('btnReset').onclick=()=>reset();
+$('dens').oninput=ev=>{CFG.density=+ev.target.value;$('densV').textContent=CFG.density;};
+$('auto').onchange=ev=>CFG.auto=ev.target.checked;$('fov').onchange=ev=>CFG.fov=ev.target.checked;
+$('nav').onchange=ev=>{CFG.nav=ev.target.value;S.laneCooldown=0;};
+$('weather').onchange=ev=>{CFG.weather=ev.target.value;S.lastKey=null;};
+$('profile').onchange=ev=>{CFG.profile=ev.target.value;$('profDesc').textContent=PROFILES[CFG.profile].desc;S.lastKey=null;};
+document.querySelectorAll('button.ev').forEach(b=>b.onclick=()=>EVENTS[b.dataset.ev]());
+document.querySelectorAll('.vqa button').forEach(b=>b.onclick=()=>ask(b.dataset.q));
+$('profDesc').textContent=PROFILES[CFG.profile].desc;
+buildCams();reset();requestAnimationFrame(frame);
+</script>
+</body>
+</html>
